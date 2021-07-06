@@ -328,51 +328,11 @@ class ClayAnalysis:
 
     def adsorption_times(self,start=0,stop=-1):
         times = []
-        adsorbed_to_surf = self.find_adsorbed_as_agroup(surface_ids,adsorbants,r_c)
-        ads_w_time = self.__setup_ads_w_time(adsorbed_to_surf)
+        
         for ts in self.universe.trajectory[start:stop]:
+        
 
-                adsorbed_to_surf = self.find_adsorbed_as_agroup(surface_ids,adsorbants,r_c)
-
-                #MUST CONSIDER DISJOINT OF SURFACE IONS BEING CONSIDERED IN CURRENT AND RECORD  
-                rm =   ads_w_time.keys() -adsorbed_to_surf.keys()
-                for rem_surf_at in rm:
-                    removed = ads_w_time_keys.pop(rem_surf_at)
-                    for rem_ion in removed:
-                        times.append(removed[rem_ion])
-                        
 
                 
-                for surf_atm in adsorbed_to_surf.keys():
-                    if(not surf_atm in ads_w_time.keys()):
-                        ads_w_time[surf_atm] = {}
-                    print(adsorbed_to_surf[surf_atm])
-                    print(ads_w_time[surf_atm])
-                    increment_ads_time = adsorbed_to_surf[surf_atm] & ads_w_time[surf_atm].keys() 
-                                 
-                    for inc in increment_ads_time: #Current and historic (no change)
-                        time = ads_w_time[surf_atm].pop(inc)
-                        ads_w_time[surf_atm][inc] = time+self.universe.dt
-                       
-                    
-                    adsorbed = adsorbed_to_surf[surf_atm] - ads_w_time[surf_atm].keys() #Current but not historic (newly adsorbed)
-                    for ads in adsorbed:
-                        ads_w_time[surf_atm][ads]=0 #Assumes this to be starting point +-dt error
-                        
-                    desorbed = ads_w_time[surf_atm].keys() - adsorbed_to_surf[surf_atm] #Historic but not in current (desorbed)
-                    for dsb in desorbed:
-                        times.append(ads_w_time[surf_atm][dsb]) #Assumes this to be ending point +-dt error
-  
-        #SHOULD CONSIDER THOSE STILL ADSORBED TO THE SURFACE AT END?
 
 
-    def __setup_ads_w_time(self,adsorbed_to_surf):
-        #WE PERHAPS SHOULD NOT INCLUDE THOSE ADSORBED AT START OF SIM ONLY NEW ADSORPTIONS
-        ads_w_time = {}
-        for surf_atm in adsorbed_to_surf.keys():
-            ads_w_time[surf_atm] = {}
-
-            for ads_atom in adsorbed_to_surf[surf_atm]:
-                ads_w_time[surf_atm][ads_atom] = 0 
-
-        return ads_w_time

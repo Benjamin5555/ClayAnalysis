@@ -9,28 +9,17 @@ from MDAnalysis import transformations
 from MDAnalysis import analysis
 from MDAnalysis.analysis import lineardensity
 
-def shift_clay_to_origin(ts):
-    """
-    Translate all coordinates to have clay centered.
-
-    Might be better to pass clay atom selection? simpler version for now
-    """
-    clay = u.select_atoms("resname NON*")
-    
-    
-    ts.positions = ts.positions - clay.center_of_mass()
-    return ts
 
 def num_test(lower_surf,upper_surf):
     ag_upper = upper_surf[0]
     n_up = upper_surf[0].n_atoms 
-    for i in upper_surf:
+    for i in upper_surf[1:]:
         ag_upper = ag_upper + i
         n_up = n_up+i.n_atoms
 
     n_low = lower_surf[0].n_atoms
     ag_lower = lower_surf[0]
-    for i in lower_surf:
+    for i in lower_surf[1:]:
         ag_lower = ag_lower + i
         n_low = n_low+i.n_atoms
     
@@ -102,7 +91,6 @@ u = mda.Universe("TestFiles/sim_02.tpr","TestFiles/sim_02.trr")
 
 cal = ClayAnalysis(u)
 
-u.trajectory.add_transformations(*[shift_clay_to_origin,mda.transformations.wrap(u.atoms)])
 
 
 for du in u.trajectory:
@@ -111,6 +99,8 @@ for du in u.trajectory:
     upper_surf = surfaces[1]
     ag_upper,ag_lower = num_test(lower_surf,upper_surf) 
     #plot_surface_vs_bulk(u,upper_surf,lower_surf,ag_upper,ag_lower)
+    assert cal.combine_atomgroups(lower_surf)==ag_lower
+
 
     surfaces = cal.generate_surface_group("mineral")
     lower_surf = surfaces[0]
