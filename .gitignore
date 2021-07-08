@@ -1,4 +1,5 @@
 **/*.swp
 **/*.swo
 **/*.trr #Files too large to be uploaded
+TestFiles/
 **/__pycache__

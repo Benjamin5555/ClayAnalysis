@@ -17,6 +17,7 @@ import scipy.stats as stats
 from scipy.signal import find_peaks
 
 
+r_c = 2 
 
 def get_minima_coords(xs,ys):
         """
@@ -46,16 +47,16 @@ class ClayAnalysis:
         
         self.clay = self.universe.select_atoms("resname NON*")
 
-    @staticmethod 
-    def combine_atomgroups(list_of_groups):
+    def combine_atomgroups(self,list_of_groups):
         """
             param: List of atomgroup objects
             returns: single atomgroup object
             Given a list of atomgroups, outputs a single atomgroup combining them 
         """
-        ag = list_of_groups[0]
-        for g in list_of_groups[0]:
-            ag_ = ag + g
+        
+        ag = mda.AtomGroup([],self.universe)#list_of_groups[0]
+        for g in list_of_groups:
+            ag = ag + g
         return ag
 
 
@@ -278,26 +279,26 @@ class ClayAnalysis:
 ###############################Adsorption analysis
 
 
-    def find_adsorbed(self,surface_ids,adsorbants,r_c):
-        """
-        params: Indices of atoms at the surface of clay (AtomGroup.indices)
-        params: Name of possible adsorbants to the surface of clay that are of interest
-        params: Cutoff distance at which a particle is considered to be adsorbed
-        returns: adsorbed atoms of interest at current time step
+#    def find_adsorbed(self,surface_ids,adsorbants,r_c):
+#        """
+#        params: Indices of atoms at the surface of clay (AtomGroup.indices)
+#        params: Name of possible adsorbants to the surface of clay that are of interest
+#        params: Cutoff distance at which a particle is considered to be adsorbed
+#        returns: adsorbed atoms of interest at current time step
+#    
+#        Create a list of search strings that filters atoms in a certain distance to the
+#        surface and of a specific type of interest
+#        """
+#    
+#        search_strs = ""
+#    
+#        for i in surface_ids:
+#            for j in adsorbants:
+#                search_strs+= "(resname " + str(j) + " and around "+ str(r_c) + " index "+str(i)+") or "
+#                #Might be quicker to do as two lists
+#        return self.universe.select_atoms(search_strs[:-3])
     
-        Create a list of search strings that filters atoms in a certain distance to the
-        surface and of a specific type of interest
-        """
-    
-        search_strs = ""
-    
-        for i in surface_ids:
-            for j in adsorbants:
-                search_strs+= "(resname " + str(j) + " and around "+ str(r_c) + " index "+str(i)+") or "
-                #Might be quicker to do as two lists
-        return self.universe.select_atoms(search_strs[:-3])
-    
-    def find_adsorbed_as_agroup(self,surface_ids,adsorbants,r_c):
+    def find_adsorbed(self,surface_ids,adsorbants):#,r_c=10):
         """
         params: index of atoms at the surface of clay
         params: resnames of possible adsorbants to the surface of clay that are of interest
@@ -326,45 +327,81 @@ class ClayAnalysis:
         return adsorbed_to_surf
 
 
-    def adsorption_times(self,start=0,stop=-1):
+    def adsorption_times(self,surface_ids,adsorbants,start=0,stop=-1):
         times = []
-        adsorbed_to_surf = self.find_adsorbed_as_agroup(surface_ids,adsorbants,r_c)
+        adsorbed_to_surf = self.find_adsorbed(surface_ids,adsorbants)
         ads_w_time = self.__setup_ads_w_time(adsorbed_to_surf)
+        stats = []
         for ts in self.universe.trajectory[start:stop]:
-
-                adsorbed_to_surf = self.find_adsorbed_as_agroup(surface_ids,adsorbants,r_c)
-
+                
+                #counters
+                i_ad = 0 
+                i_ct = 0 
+                i_ds = 0
+                #print("---------------------------")
+                print(ts)
+                adsorbed_to_surf = self.find_adsorbed(surface_ids,adsorbants)#,r_c)
+                
                 #MUST CONSIDER DISJOINT OF SURFACE IONS BEING CONSIDERED IN CURRENT AND RECORD  
+                #WHAT ABOUT ADSORPTION TO 2 NEARBY SURFACE IONS?
+
                 rm =   ads_w_time.keys() -adsorbed_to_surf.keys()
+                
+                #print(list(ads_w_time.keys()))
+                #print("--")
+                #print(list(adsorbed_to_surf.keys()))
+                #print("--")
+                #print(list(rm))
+                
                 for rem_surf_at in rm:
-                    removed = ads_w_time_keys.pop(rem_surf_at)
+                    removed = ads_w_time.pop(rem_surf_at)
                     for rem_ion in removed:
                         times.append(removed[rem_ion])
-                        
-
+                        i_ds = i_ds +1 
                 
                 for surf_atm in adsorbed_to_surf.keys():
+                    
                     if(not surf_atm in ads_w_time.keys()):
                         ads_w_time[surf_atm] = {}
-                    print(adsorbed_to_surf[surf_atm])
-                    print(ads_w_time[surf_atm])
-                    increment_ads_time = adsorbed_to_surf[surf_atm] & ads_w_time[surf_atm].keys() 
-                                 
+                    #print(adsorbed_to_surf[surf_atm])
+                    #print(ads_w_time[surf_atm])
+                    
+                    ###########################    
+                    #print(list(ads_w_time[surf_atm].keys()))
+                    combo_keys = self.combine_atomgroups(list(ads_w_time[surf_atm].keys()))
+                    
+                    
+                    adsorbed = adsorbed_to_surf[surf_atm] - combo_keys #Current but not historic (newly adsorbed)
+                    for ads in adsorbed:
+                        i_ad = i_ad +1
+                        ads_w_time[surf_atm][ads]=1 #Assumes this to be starting point +-dt error
+                                                   #MOVE SO DESORBTION AND CONTINUE ONLY CHECKED IN CASE OF SURFACE ION ALREADY EXIST IN LIST
+                    increment_ads_time = adsorbed_to_surf[surf_atm] & combo_keys 
+                    
+
                     for inc in increment_ads_time: #Current and historic (no change)
                         time = ads_w_time[surf_atm].pop(inc)
-                        ads_w_time[surf_atm][inc] = time+self.universe.dt
-                       
+                        ads_w_time[surf_atm][inc] = time+1#self.universe.dt
+                        i_ct = i_ct + 1
+                                        
+
                     
-                    adsorbed = adsorbed_to_surf[surf_atm] - ads_w_time[surf_atm].keys() #Current but not historic (newly adsorbed)
-                    for ads in adsorbed:
-                        ads_w_time[surf_atm][ads]=0 #Assumes this to be starting point +-dt error
-                        
-                    desorbed = ads_w_time[surf_atm].keys() - adsorbed_to_surf[surf_atm] #Historic but not in current (desorbed)
+                                           
+                    desorbed = combo_keys - adsorbed_to_surf[surf_atm] #Historic but not in current (desorbed)
                     for dsb in desorbed:
                         times.append(ads_w_time[surf_atm][dsb]) #Assumes this to be ending point +-dt error
-  
-        #SHOULD CONSIDER THOSE STILL ADSORBED TO THE SURFACE AT END?
+                        i_ds = i_ds+1
+                #print(str(self.__adsorbed_at_current_time(adsorbed_to_surf))+" Total adsorbed at this step" 
+                #print(str(i_ad)+" adsorption events")
+                #print(str(i_ds) + " particles desorbed")
+                #print(str(i_ct) + " particles continue to be adsorbed")
 
+                stats.append([i_ad,i_ds,i_ct,self.__adsorbed_at_current_time(adsorbed_to_surf)]) 
+                print(stats[-1]) 
+
+        #SHOULD CONSIDER THOSE STILL ADSORBED TO THE SURFACE AT END?
+        print(times)
+        return times, stats
 
     def __setup_ads_w_time(self,adsorbed_to_surf):
         #WE PERHAPS SHOULD NOT INCLUDE THOSE ADSORBED AT START OF SIM ONLY NEW ADSORPTIONS
@@ -376,3 +413,13 @@ class ClayAnalysis:
                 ads_w_time[surf_atm][ads_atom] = 0 
 
         return ads_w_time
+
+
+
+
+    def __adsorbed_at_current_time(self, adsorbed_dict):
+        count  = 0
+        for surf_atm in adsorbed_dict.keys():
+            for ads in adsorbed_dict[surf_atm]:
+                count = count+1      
+        return count  

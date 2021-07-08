@@ -8,40 +8,103 @@ from clayAnalysis import ClayAnalysis
 from MDAnalysis import transformations
 from MDAnalysis import analysis
 from MDAnalysis.analysis import lineardensity
+import pytest
+
+
+def plot_group_2d(grp):
+    
+    upper_x = np.transpose(grp.positions)[0]
+    
+    upper_z = np.transpose(grp.positions)[2]
+        # non_surf = clay.select_atoms("resname "+sel).difference(ag_upper)
+        # print(non_surf)
+
+    plt.scatter(upper_x,upper_z)
+
+def plot_group(grp,fig,ax):
+
+    upper_x = np.transpose(grp.positions)[0]
+    upper_y = np.transpose(grp.positions)[1]
+    upper_z = np.transpose(grp.positions)[2]
+
+        # non_surf = clay.select_atoms("resname "+sel).difference(ag_upper)
+        # print(non_surf)
+
+    ax.scatter(upper_x,upper_y,upper_z)
 
 
 
-u = mda.Universe("TestFiles/eq_d_spacing_06.tpr","TestFiles/eq_d_spacing_06.trr")
-#u = mda.Universe("TestFiles/sim_02.tpr","TestFiles/sim_02.trr")
+
+#u = mda.Universe("TestFiles/test_sys.pdb","TestFiles/test_sys.pdb")
+print("Bulk Charcteristics check")
+
+u = mda.Universe("TestFiles/test_sys.pdb","TestFiles/test_sys.pdb")
 
 cal = ClayAnalysis(u)
 
-layer = u.select_atoms("prop z >= 87.25 and prop z < 89.36") #Surface determination doesn't actually
-                                                             #work with this yet in differnt forms
+layer = u.select_atoms("resname NON*") 
 
-r_c = 5 # 5 angstrom cutoff distance
-t_surface_Si = layer.atoms.select_atoms("name S*")
+upper_x = np.transpose(layer.positions)[0]
+    
+upper_z = np.transpose(layer.positions)[2]
+        # non_surf = clay.select_atoms("resname "+sel).difference(ag_upper)
+        # print(non_surf)
+plt.scatter(upper_x,upper_z)
+
 test_ads_names =  [u.select_atoms("resname Mg").names[0]]
-t_surface_atoms_ids = t_surface_Si.indices
+surface_atoms_ids = layer.indices
 
-
-adsorbed = cal.find_adsorbed_as_agroup(t_surface_atoms_ids,test_ads_names,r_c)
-print(adsorbed)
 #fig = plt.figure()
 #ax = Axes3D(fig, zlabel="z")
-#t_surface_Si_x = np.transpose(t_surface_Si.positions)[0]
-#t_surface_Si_y = np.transpose(t_surface_Si.positions)[1]
-#t_surface_Si_z = np.transpose(t_surface_Si.positions)[2]
+Mgs = u.select_atoms("type Mg")
+plot_group_2d(layer)
+plot_group_2d(Mgs)
+#`plt.show()
+
+
+times, stats= cal.adsorption_times(surface_atoms_ids,test_ads_names,0,8)
+
+#NO CHANGE/ADSORPTION
+assert stats[0] == [0,0,0,0]
+
+#ADSORPTION ONLY
+assert stats[1][0] != 0 and stats[1][1] == 0 
+#NO CHANGE
+assert stats[2][0] == 0 and stats[2][1] == 0 
+#ALL DESORB
+assert stats[3][2] == stats[2][1] and stats[3][3] == 0
+#ALL ADSORB
+assert stats[4][0] != 0 and stats[4][1] == 0 
+#HALF DESORB
+assert stats[5][1] == pytest.approx(stats[5][3],1)
+#HALF DESORB, HALF ADSORB
+assert stats[6][0] == pytest.approx(stats[6][1],1) 
+
+
+#adsorbed = cal.find_adsorbed(surface_atoms_ids,test_ads_names,r_c)
+
+#for ts in u.trajectory[1:20]:
+#    #print(Mgs.positions)
+#    #Mgs.positions[0] = adsorbed[list(adsorbed.keys())[0]].positions[0]
 #
-#for ads in adsorbed.keys:
-#    a_x = np.transpose(adsorbed[ads].positions)[0]
-#    a_y = np.transpose(adsorbed[ads].positions)[1]
-#    a_z = np.transpose(adsorbed[ads].positions)[2]
-#        
-#    
-#    
-#    ax.scatter(a_x,a_y,a_z)
-#    
-#ax.scatter(t_surface_Si_x,t_surface_Si_y,t_surface_Si_z)
+#    #Mgs.positions[np.random.randint(Mgs.n_atoms)][2] = adsorbed[list(adsorbed.keys())[0]].positions[0][2]
+#    #print("-----------------------")
+#    #print(Mgs.positions)
+#    plot_group_2d(layer)
+#    adsorbed = cal.find_adsorbed(surface_atoms_ids,test_ads_names,r_c)
+#    for surf in adsorbed.keys():
+#        print(adsorbed[surf].positions)
+#        plot_group_2d(adsorbed[surf])
+#    plt.show()
+
+
+
+#print(adsorbed)
+#
+#plot_group_2d(layer)
+#plot_group_2d(Mgs)
+#for surf in adsorbed.keys():
+#   plot_group_2d(adsorbed[surf])
+#
 #
 #plt.show()
