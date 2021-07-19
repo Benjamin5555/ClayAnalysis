@@ -3,6 +3,8 @@ TODO change print statments to logging
 TODO allow specification of clay residues at instantiation?
 TODO Get rid of box_dims for timestep.dimensions
 TODO make transformation of clay to origin automatic
+TODO get_partial_density function currently only returns a single partial density (last frame) need
+     to change it's return to res and then update rest of code to deal with this change 
 
 """
 import MDAnalysis as mda
@@ -17,7 +19,22 @@ import scipy.stats as stats
 from scipy.signal import find_peaks
 
 
-r_c = 2 
+r_c = 0 
+
+def plot_group(grp,fig=None,ax=None,lable=None):
+    if fig ==None:
+        fig = plt.figure()
+        ax = Axes3D(fig, zlabel="z")
+
+    upper_x = np.transpose(grp.positions)[0]
+    upper_y = np.transpose(grp.positions)[1]
+    upper_z = np.transpose(grp.positions)[2]
+
+        # non_surf = clay.select_atoms("resname "+sel).difference(ag_upper)
+        # print(non_surf)
+
+    ax.scatter(upper_x,upper_y,upper_z,label=lable)
+
 
 def get_minima_coords(xs,ys):
         """
@@ -43,8 +60,10 @@ class ClayAnalysis:
 
     def __init__(self,u):
         self.universe = u
+        #self.box_dims = self.universe
+        #print(self.box_dims)
         self.box_dims = self.get_box_dim()#start stop etc should be defined
-        
+        #print(self.box_dims)
         self.clay = self.universe.select_atoms("resname NON*")
 
     def combine_atomgroups(self,list_of_groups):
@@ -74,31 +93,42 @@ class ClayAnalysis:
 
 ###Mostly stolen from dynden (should import instead)########
     def get_box_dim(self,timestep=10, start=0,stop=-1):
-    	'''
-    	params: universe
-    	params: timestep
-    	return: box dimensions over time
-    	See line 365 dynden
-    	'''
-    	#logger.info("> getting simulation box dimensions...")
-    	v = []
-    	for ts in self.universe.trajectory[start:stop]:
-    	    ptmp = self.universe.atoms.positions[:, 2]
-    	    minpos = np.min(ptmp)
-    	    maxpos = np.max(ptmp)
-    	    dim = np.max(ptmp) - np.min(ptmp)
-    	    v.append([ts.frame, minpos, maxpos, dim])
+        '''
+        params: universe
+        params: timestep
+        return: box dimensions over time
+        See line 365 dynden
+        '''
+        #logger.info("> getting simulation box dimensions...")
+        v = []
+        print(self.universe.trajectory[0].n_atoms)
+        print(self.universe.trajectory[1].n_atoms)
+        print(self.universe.trajectory[2].n_atoms)
+        if (self.universe.trajectory.n_frames>1):
+            for ts in self.universe.trajectory[start:stop]:
+                ptmp = self.universe.atoms.positions[:, 2]
+                minpos = np.min(ptmp)
+                maxpos = np.max(ptmp)
+                dim = np.max(ptmp) - np.min(ptmp)
+                v.append([ts.frame, minpos, maxpos, dim])
 
-    	    #logger.debug(">> frame %s: z = %5.2f A..."%(ts.frame, dim))
+                #logger.debug(">> frame %s: z = %5.2f A..."%(ts.frame, dim))
 
-    	box_dims = np.array(v)
-    	box_dims[:, 0] *= timestep/1000.0
+        else:
+            ptmp = self.universe.atoms.positions[:, 2]
+            minpos = np.min(ptmp)
+            maxpos = np.max(ptmp)
+            dim = np.max(ptmp) - np.min(ptmp)
+            v.append([self.universe.trajectory.frame, minpos, maxpos, dim])
 
-    	np.savetxt("bkp_box_dims.dat", box_dims) #Save dimensions to file
-    	return box_dims
+        box_dims = np.array(v)
+        box_dims[:, 0] *= timestep/1000.0
+
+                #np.savetxt("bkp_box_dims.dat", box_dims) #Save dimensions to file
+        return box_dims
 
 
-        	
+                
     def get_partial_density(self, box_dims, sel, bins=100, start=0, stop=-1):
         '''        
         params: universe
@@ -109,22 +139,32 @@ class ClayAnalysis:
         params: stop last frame to study
         returns: density at each timepoint
         '''
-        
+        print("Calculating partial densitiy for selection" +str(sel))
+        print("NOTE: This currently uses only the data from the final trajectory frame") 
         mol = self.universe.select_atoms(sel)
         res = [] #density collector
+                
         cnt = 0
-        for ts in self.universe.trajectory[start:stop]:
+        if(self.universe.trajectory.n_frames>1):
+                for ts in self.universe.trajectory[start:stop]:
 
-            curr_box = box_dims[cnt]
-            binning = np.linspace(curr_box[1]-1, curr_box[2]+1, bins)
-            
-            result = np.histogram(mol.atoms.positions[:, 2], weights=mol.masses, bins=binning)    
-            res.append(result)
+                    curr_box = box_dims[cnt]
+                    binning = np.linspace(curr_box[1]-1, curr_box[2]+1, bins)
+                    
+                    result = np.histogram(mol.atoms.positions[:, 2], weights=mol.masses, bins=binning)    
+                    res.append(result)
 
-            #logger.debug(">> frame %s density..."%ts.frame)
-            cnt += 1
-
+                    #logger.debug(">> frame %s density..."%ts.frame)
+                    cnt += 1
+        
+        else:
+                curr_box = box_dims[0]
+                binning = np.linspace(curr_box[1]-1, curr_box[2]+1, bins)
+                    
+                result = np.histogram(mol.atoms.positions[:, 2], weights=mol.masses, bins=binning)
+                res.append(result)
         return result
+
 
 
     def get_resnames_in_model(self):
@@ -207,8 +247,7 @@ class ClayAnalysis:
         upper_layers = []
         
         if(surf_type == "mineral"): 
-                atom_sel =["name ST* or name AT*"]
-
+                atom_sel =["name ST* or name AT*"] #Should just be not certain types
                 den = self.get_partial_density(box_dims, "resname NON* and (name ST* or name AT*)")#or name AT*")
                 peakNum = [5,7]
         else:
@@ -216,21 +255,19 @@ class ClayAnalysis:
                 den = self.get_partial_density(box_dims," resname NON* and name O*") 
                 peakNum = [6,8]
         #hist_boxes_to_ midpoints
+
         z_points = (den[1][1:] + den[1][:-1]) / 2
         minima = get_minima_coords(z_points,den[0])
         #Want to find the z axis boundary of the lower clay basal surface
 
         lower_surface_bounds = minima[peakNum[0]-1:peakNum[0]+1]
         
-
         #Want to find the z axis boundary of the other clay basal surface
         upper_surface_bounds = minima[peakNum[1]-1:peakNum[1]+1]
-        
         for sel in atom_sel:
             cly_comp.append(self.universe.select_atoms(sel))
-            
+             
             try:
-                
                 
                 #Use these found surface boundaries to create an atomgroup of upper and lower surface
                 lower_layers.append(self.universe.select_atoms("("+sel
@@ -250,30 +287,6 @@ class ClayAnalysis:
 
 
 
-
-#####################################CHARGE THROUGH A SURFACE
-
-    def plot_surface_charge(self,selection,bins=100,interpolate=True):
-        """
-            params: Atomgroup of interest 
-            params: (optional) bin sizes
-            params: (optional) bool smoothed 
-            
-            Simple charge surface plotting via a 2d histogram
-        """
-
-        Xs = selection.atoms.positions[:,0]
-        Ys = selection.atoms.positions[:,1]
-        Zs = selection.atoms.positions[:,2]
-        fig, ax = plt.subplots()
-
-        im = plt.hist2d(Xs,Ys,weights=selection.atoms.charges)
-        if(interpolate):
-            ax.imshow(im[0], interpolation = "gaussian")
-
-        fig.colorbar(im[3])
-
-        plt.show()
 
 
 ###############################Adsorption analysis
@@ -298,7 +311,8 @@ class ClayAnalysis:
 #                #Might be quicker to do as two lists
 #        return self.universe.select_atoms(search_strs[:-3])
     
-    def find_adsorbed(self,surface_ids,adsorbants):#,r_c=10):
+    def find_adsorbed(self,surface_ids,adsorbants_resnames):#,r_c=10):
+
         """
         params: index of atoms at the surface of clay
         params: resnames of possible adsorbants to the surface of clay that are of interest
@@ -311,48 +325,56 @@ class ClayAnalysis:
         """
     
         adsorbed_to_surf = {}
-    
+        
         for i in range(len(surface_ids)):
             search_strs= ""
-            for p_ad in adsorbants:
+            adsorbed = self.universe.select_atoms("")
+
+            for p_ad in adsorbants_resnames: #Don't think need to do the around thing every time here?
                 search_strs+= "(resname " + str(p_ad) + " and around "+ str(r_c) + " index "+str(surface_ids[i])+") or "
                 #Might be quicker to do as two lists
-                
+                       
             surf_id = self.universe.select_atoms("index "+str(surface_ids[i]))
             adsorbed = self.universe.select_atoms(search_strs[:-3])
             if (not adsorbed.n_atoms == 0):  
+                
                 #If not adsorbed to anything, don't bother adding to dict
                 adsorbed_to_surf[surf_id]= adsorbed
-                        
+             
         return adsorbed_to_surf
 
 
-    def adsorption_times(self,surface_ids,adsorbants,start=0,stop=-1):
-        times = []
-        adsorbed_to_surf = self.find_adsorbed(surface_ids,adsorbants)
-        ads_w_time = self.__setup_ads_w_time(adsorbed_to_surf)
+
+    def adsorption_times(self,surface_ids,adsorbant_ids,start=0,stop=-1):
+        times = [] 
+        resnames = []
+        for sid in surface_ids:
+           resnames.append(self.universe.atoms.select_atoms("index "+str(sid)).resnames)
+
+        print(np.unique(resnames))
+
+        #adsorbed_to_surf = self.find_adsorbed(surface_ids,adsorbant_ids)
+        ads_w_time ={}# self.__setup_ads_w_time(adsorbed_to_surf)
         stats = []
-        for ts in self.universe.trajectory[start:stop]:
+        tot_ads = 0
+        
+        for ts in self.universe.trajectory:
+                print(self.universe.trajectory.time)
                 
+                #for sid in surface_ids:
                 #counters
                 i_ad = 0 
                 i_ct = 0 
                 i_ds = 0
-                #print("---------------------------")
-                print(ts)
-                adsorbed_to_surf = self.find_adsorbed(surface_ids,adsorbants)#,r_c)
-                
+                adsorbed_to_surf = self.find_adsorbed(surface_ids,adsorbant_ids)
                 #MUST CONSIDER DISJOINT OF SURFACE IONS BEING CONSIDERED IN CURRENT AND RECORD  
                 #WHAT ABOUT ADSORPTION TO 2 NEARBY SURFACE IONS?
-
+                
+                ads = np.unique(list(adsorbed_to_surf.keys()))
+                
                 rm =   ads_w_time.keys() -adsorbed_to_surf.keys()
-                
-                #print(list(ads_w_time.keys()))
-                #print("--")
-                #print(list(adsorbed_to_surf.keys()))
-                #print("--")
-                #print(list(rm))
-                
+
+
                 for rem_surf_at in rm:
                     removed = ads_w_time.pop(rem_surf_at)
                     for rem_ion in removed:
@@ -363,11 +385,8 @@ class ClayAnalysis:
                     
                     if(not surf_atm in ads_w_time.keys()):
                         ads_w_time[surf_atm] = {}
-                    #print(adsorbed_to_surf[surf_atm])
-                    #print(ads_w_time[surf_atm])
                     
                     ###########################    
-                    #print(list(ads_w_time[surf_atm].keys()))
                     combo_keys = self.combine_atomgroups(list(ads_w_time[surf_atm].keys()))
                     
                     
@@ -383,10 +402,8 @@ class ClayAnalysis:
                         time = ads_w_time[surf_atm].pop(inc)
                         ads_w_time[surf_atm][inc] = time+1#self.universe.dt
                         i_ct = i_ct + 1
-                                        
+                                          
 
-                    
-                                           
                     desorbed = combo_keys - adsorbed_to_surf[surf_atm] #Historic but not in current (desorbed)
                     for dsb in desorbed:
                         times.append(ads_w_time[surf_atm][dsb]) #Assumes this to be ending point +-dt error
@@ -395,26 +412,16 @@ class ClayAnalysis:
                 #print(str(i_ad)+" adsorption events")
                 #print(str(i_ds) + " particles desorbed")
                 #print(str(i_ct) + " particles continue to be adsorbed")
+                tot_ads = tot_ads + i_ad
+                stats.append([i_ad,i_ds,i_ct,self.__adsorbed_at_current_time(adsorbed_to_surf),tot_ads]) 
+                #print(stats[-1]) 
+                
 
-                stats.append([i_ad,i_ds,i_ct,self.__adsorbed_at_current_time(adsorbed_to_surf)]) 
-                print(stats[-1]) 
-
-        #SHOULD CONSIDER THOSE STILL ADSORBED TO THE SURFACE AT END?
-        print(times)
+        #SHOULD CONSIDER THOSE STILL ADSORBED TO THE SURFACE AT END? Probably not would be artificial
+        print("Num ads, num ds, num continue, num adsorbed tot at ts,total_adsorption events")
+        #print(times)
+        print(stats)
         return times, stats
-
-    def __setup_ads_w_time(self,adsorbed_to_surf):
-        #WE PERHAPS SHOULD NOT INCLUDE THOSE ADSORBED AT START OF SIM ONLY NEW ADSORPTIONS
-        ads_w_time = {}
-        for surf_atm in adsorbed_to_surf.keys():
-            ads_w_time[surf_atm] = {}
-
-            for ads_atom in adsorbed_to_surf[surf_atm]:
-                ads_w_time[surf_atm][ads_atom] = 0 
-
-        return ads_w_time
-
-
 
 
     def __adsorbed_at_current_time(self, adsorbed_dict):
@@ -423,3 +430,31 @@ class ClayAnalysis:
             for ads in adsorbed_dict[surf_atm]:
                 count = count+1      
         return count  
+
+
+#####################################CHARGE THROUGH A SURFACE
+
+    def plot_surface_charge(self,selection,bins=100,interpolate=True):
+        """
+            params: Atomgroup of interest 
+            params: (optional) bin sizes
+            params: (optional) bool smoothed 
+            
+            Simple charge surface plotting via a 2d histogram
+        """
+
+        Xs = selection.atoms.positions[:,0]
+        Ys = selection.atoms.positions[:,1]
+        Zs = selection.atoms.positions[:,2]
+        fig, ax = plt.subplots()
+
+        im = plt.hist2d(Xs,Ys,weights=selection.atoms.charges,bins=200)
+        if(interpolate):
+            print(self.universe.dimensions)
+            ax.imshow(im[0], interpolation = "gaussian",extent=[0,self.universe.dimensions[0],0,self.universe.dimensions[1]])
+
+        fig.colorbar(im[3])
+
+        plt.show()
+
+

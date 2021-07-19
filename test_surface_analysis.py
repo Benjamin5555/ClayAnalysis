@@ -87,7 +87,7 @@ def plot_surface_vs_bulk(u,upper_surf,lower_surf,ag_upper,ag_lower):
 
 #u = mda.Universe("TestFiles/eq_d_spacing_06.tpr","TestFiles/eq_d_spacing_06.trr")
 #u = mda.Universe("TestFiles/sim_01.tpr","TestFiles/sim_01.trr")
-u = mda.Universe("TestFiles/sim_02.tpr","TestFiles/sim_02.trr")
+u = mda.Universe("TestFiles/sim_02/sim_02.tpr","TestFiles/sim_02/sim_02.trr")
 
 cal = ClayAnalysis(u)
 
