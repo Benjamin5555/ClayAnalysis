@@ -44,9 +44,6 @@ def plot_group(grp):
 print("Test2")
 u = mda.Universe("TestFiles/test_sys.pdb","TestFiles/test_sys.pdb")
 
-#u = mda.Universe("TestFiles/sim_02/sim_02.tpr","TestFiles/test_sys.pdb")
-
-#plot_group(u.atoms)
 cal = ClayAnalysis(u)
 
 
@@ -69,53 +66,48 @@ assert stats[0] == [0,0,0,0,0]
 
 #Single Adsorption
 assert stats[1] ==[1,0,0,1,1]
+assert stats[2] ==[1,0,1,2,2]
 
 #Single desorbs 
-assert stats[2] == [0,1,0,0,1]
+assert stats[3] == [0,1,1,1,2]
+assert stats[4] == [0,1,0,0,2]
 
 #All adsorb
-assert stats[3] == [17,0,0,17,18]
+assert stats[5] == [17,0,0,17,19]
 
 #All Desorb bar one and adsorb to same ion
-assert stats[4] == [16,16,1,17,18+16]
+assert stats[6] == [16,16,1,17,19+16]
+
 
 #All desorb
-assert stats[5] == [0,17,0,0,18+16]
+assert stats[7] == [0,17,0,0,19+16]
 
 #All adsorb to two surface ions at same time
-assert stats[6] == [34,0,0,34,18+16+34]
+assert stats[8] == [34,0,0,34,19+16+34]
 
 #All desorb
-assert stats[7] == [0,34,0,0,18+16+34]
+assert stats[9] == [0, 34, 0, 0,19+16+34]
 
-assert len(np.where(np.array(times)==1)[0])==18+16+34-1
-assert len(np.where(np.array(times)==2)[0])==1
+#ALL adsorb to one again 
+assert stats[10] == [17, 0, 0,17,19+16+34+17]
 
+#8 desorb from one 
+assert stats[11] == [ 0, 8, 17-8,17-8,86]
 
-#adsorbed = cal.find_adsorbed(surface_atoms_ids,test_ads_names,r_c)
+#4 more desorb
+assert stats[12] == [0,5,17-8-5,17-8-5,86]
 
-#for ts in u.trajectory[1:20]:
-#    #print(Mgs.positions)
-#    #Mgs.positions[0] = adsorbed[list(adsorbed.keys())[0]].positions[0]
-#
-#    #Mgs.positions[np.random.randint(Mgs.n_atoms)][2] = adsorbed[list(adsorbed.keys())[0]].positions[0][2]
-#    #print("-----------------------")
-#    #print(Mgs.positions)
-#    plot_group_2d(layer)
-#    adsorbed = cal.find_adsorbed(surface_atoms_ids,test_ads_names,r_c)
-#    for surf in adsorbed.keys():
-#        print(adsorbed[surf].positions)
-#        plot_group_2d(adsorbed[surf])
-#    plt.show()
+#ALL BUT 1 desorb
+assert stats[13] == [ 0, 3, 1, 1,86]
+
+#CHECK TIMES OUTPUT, expect mostly 1 timestep adsorptions but 10 for 2 steps 
 
 
 
-#print(adsorbed)
-#
-#plot_group_2d(layer)
-#plot_group_2d(Mgs)
-#for surf in adsorbed.keys():
-#   plot_group_2d(adsorbed[surf])
-#
-#
-#plt.show()
+assert len(np.where(np.array(times)==1)[0])==75
+assert len(np.where(np.array(times)==2)[0])==6 #One ion remains joined which is not added to the times
+
+assert len(np.where(np.array(times)==3)[0])==4
+
+
+

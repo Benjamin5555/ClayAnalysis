@@ -19,7 +19,6 @@ import scipy.stats as stats
 from scipy.signal import find_peaks
 
 
-r_c = 0 
 
 def plot_group(grp,fig=None,ax=None,lable=None):
     if fig ==None:
@@ -101,9 +100,6 @@ class ClayAnalysis:
         '''
         #logger.info("> getting simulation box dimensions...")
         v = []
-        print(self.universe.trajectory[0].n_atoms)
-        print(self.universe.trajectory[1].n_atoms)
-        print(self.universe.trajectory[2].n_atoms)
         if (self.universe.trajectory.n_frames>1):
             for ts in self.universe.trajectory[start:stop]:
                 ptmp = self.universe.atoms.positions[:, 2]
@@ -292,26 +288,7 @@ class ClayAnalysis:
 ###############################Adsorption analysis
 
 
-#    def find_adsorbed(self,surface_ids,adsorbants,r_c):
-#        """
-#        params: Indices of atoms at the surface of clay (AtomGroup.indices)
-#        params: Name of possible adsorbants to the surface of clay that are of interest
-#        params: Cutoff distance at which a particle is considered to be adsorbed
-#        returns: adsorbed atoms of interest at current time step
-#    
-#        Create a list of search strings that filters atoms in a certain distance to the
-#        surface and of a specific type of interest
-#        """
-#    
-#        search_strs = ""
-#    
-#        for i in surface_ids:
-#            for j in adsorbants:
-#                search_strs+= "(resname " + str(j) + " and around "+ str(r_c) + " index "+str(i)+") or "
-#                #Might be quicker to do as two lists
-#        return self.universe.select_atoms(search_strs[:-3])
-    
-    def find_adsorbed(self,surface_ids,adsorbants_resnames):#,r_c=10):
+    def find_adsorbed(self,surface_ids,adsorbants_resnames,r_c=0):#,r_c=10):
 
         """
         params: index of atoms at the surface of clay
@@ -321,15 +298,14 @@ class ClayAnalysis:
     
         Creates a dictionary of atomgroups, which links a surface atom to a number of adsorbant ions
 
-        #TODO: Create test that this actually works
         """
-    
+        
         adsorbed_to_surf = {}
         
         for i in range(len(surface_ids)):
             search_strs= ""
             adsorbed = self.universe.select_atoms("")
-
+            
             for p_ad in adsorbants_resnames: #Don't think need to do the around thing every time here?
                 search_strs+= "(resname " + str(p_ad) + " and around "+ str(r_c) + " index "+str(surface_ids[i])+") or "
                 #Might be quicker to do as two lists
@@ -345,82 +321,95 @@ class ClayAnalysis:
 
 
 
-    def adsorption_times(self,surface_ids,adsorbant_ids,start=0,stop=-1):
+    def adsorption_times(self,surface_ids,adsorbant_ids,r_c=0,start=0,stop=-1):
+        """
+            params: atomgroup.indices property of the surface group of interest being adsorbed to
+            params: resname of adsorbants to be adsorbed to surface
+            params: Cutoff distance below which defines an adsorption event
+            params: start timestep to analyse 
+            params: stop timestep to analyse 
+            
+            returns: 
+                list of stats at each time step on [# adsorption events, # desorption events,
+                                                    # continuing to be adsorbed,
+                                                    total adsorbed to surface at this time step,
+                                                    total # adsorption events]
+                and 
+                list of times ions stayed adsorbed to the surface 
+
+            NOTE: If an ion is 'already adsorbed' at the start of the simulation it will be 
+                  considered as though it adsorbs at starting time step 
+            NOTE: If an ion is still adsorbed at the end of the simulation its time will not be 
+                  output 
+        """
+        #TODO: Allow different ions to have different adsorption cutoff distances
+        #TODO: Case where ions adsorbed in first time step 
+        #        ->considered to be adsorbed as though just adsorbed to surface
+        #TODO: Case where ions still adsorbed to the surface at the end -> times not recorded
         times = [] 
-        resnames = []
-        for sid in surface_ids:
-           resnames.append(self.universe.atoms.select_atoms("index "+str(sid)).resnames)
-
-        print(np.unique(resnames))
-
-        #adsorbed_to_surf = self.find_adsorbed(surface_ids,adsorbant_ids)
+        
         ads_w_time ={}# self.__setup_ads_w_time(adsorbed_to_surf)
         stats = []
         tot_ads = 0
         
+        print("Step,Num ads, num ds, num continue, num adsorbed tot at ts,total_adsorption events")
         for ts in self.universe.trajectory:
-                print(self.universe.trajectory.time)
-                
                 #for sid in surface_ids:
                 #counters
                 i_ad = 0 
                 i_ct = 0 
                 i_ds = 0
-                adsorbed_to_surf = self.find_adsorbed(surface_ids,adsorbant_ids)
-                #MUST CONSIDER DISJOINT OF SURFACE IONS BEING CONSIDERED IN CURRENT AND RECORD  
-                #WHAT ABOUT ADSORPTION TO 2 NEARBY SURFACE IONS?
+                adsorbed_to_surf = self.find_adsorbed(surface_ids,adsorbant_ids,r_c)
                 
                 ads = np.unique(list(adsorbed_to_surf.keys()))
-                
-                rm =   ads_w_time.keys() -adsorbed_to_surf.keys()
+               
 
-
+                #If a surface ion is no longer sorbed to anything, we remove it from the list of stored ions
+                rm =   ads_w_time.keys() - adsorbed_to_surf.keys()
                 for rem_surf_at in rm:
                     removed = ads_w_time.pop(rem_surf_at)
                     for rem_ion in removed:
                         times.append(removed[rem_ion])
                         i_ds = i_ds +1 
-                
+               
+                #Look at each surface ion which has something adsorbed to it and compare to historic record of adsorpion info
                 for surf_atm in adsorbed_to_surf.keys():
-                    
+                     
                     if(not surf_atm in ads_w_time.keys()):
                         ads_w_time[surf_atm] = {}
                     
                     ###########################    
                     combo_keys = self.combine_atomgroups(list(ads_w_time[surf_atm].keys()))
                     
-                    
+                   
+                     
                     adsorbed = adsorbed_to_surf[surf_atm] - combo_keys #Current but not historic (newly adsorbed)
                     for ads in adsorbed:
                         i_ad = i_ad +1
                         ads_w_time[surf_atm][ads]=1 #Assumes this to be starting point +-dt error
-                                                   #MOVE SO DESORBTION AND CONTINUE ONLY CHECKED IN CASE OF SURFACE ION ALREADY EXIST IN LIST
                     increment_ads_time = adsorbed_to_surf[surf_atm] & combo_keys 
                     
-
+                    #For those which stay adsorbed, we increment the time for which they have been adsorbed
                     for inc in increment_ads_time: #Current and historic (no change)
                         time = ads_w_time[surf_atm].pop(inc)
                         ads_w_time[surf_atm][inc] = time+1#self.universe.dt
                         i_ct = i_ct + 1
                                           
+                    #Case for surface atoms that still have something adsorbed but not all that were
+                    #adsorbed in previous step
 
-                    desorbed = combo_keys - adsorbed_to_surf[surf_atm] #Historic but not in current (desorbed)
+
+                    desorbed = combo_keys - adsorbed_to_surf[surf_atm] 
                     for dsb in desorbed:
-                        times.append(ads_w_time[surf_atm][dsb]) #Assumes this to be ending point +-dt error
+                        times.append(ads_w_time[surf_atm].pop(dsb)) #Assumes this to be ending point +-dt error
                         i_ds = i_ds+1
-                #print(str(self.__adsorbed_at_current_time(adsorbed_to_surf))+" Total adsorbed at this step" 
-                #print(str(i_ad)+" adsorption events")
-                #print(str(i_ds) + " particles desorbed")
-                #print(str(i_ct) + " particles continue to be adsorbed")
                 tot_ads = tot_ads + i_ad
                 stats.append([i_ad,i_ds,i_ct,self.__adsorbed_at_current_time(adsorbed_to_surf),tot_ads]) 
-                #print(stats[-1]) 
+                
+                print([self.universe.trajectory.time]+stats[-1])
                 
 
         #SHOULD CONSIDER THOSE STILL ADSORBED TO THE SURFACE AT END? Probably not would be artificial
-        print("Num ads, num ds, num continue, num adsorbed tot at ts,total_adsorption events")
-        #print(times)
-        print(stats)
         return times, stats
 
 
