@@ -9,7 +9,7 @@ from MDAnalysis import transformations
 from MDAnalysis import analysis
 from MDAnalysis.analysis import lineardensity
 import pytest
-
+import time
 
 def plot_group_2d(grp):
     
@@ -37,11 +37,6 @@ def plot_group(grp):
 
 
 
-
-
-
-##################TEST 2
-print("Test2")
 u = mda.Universe("TestFiles/test_sys.pdb","TestFiles/test_sys.pdb")
 
 cal = ClayAnalysis(u)
@@ -56,11 +51,19 @@ resnames = []
 for sid in surface_atoms_ids:
     resnames.append(u.atoms.select_atoms("index "+str(sid)).resnames)
 
+t = time.process_time()
 times, stats= cal.adsorption_times(surface_atoms_ids,test_ads_names,1)
+elapsed_time = time.process_time() - t
+print("Adsorption analysis on "+str(u.trajectory.n_frames)+" frames, " +str(u.atoms.n_atoms) + " atom system completed in "+str(elapsed_time))
+
 
 print(stats)
 print(times)
 
+#stats list entries:
+#Adsorption @ts events, desorption events @ts, num stayed adsorbed from last step,
+# total adsorbed @ ts, total number of adsorption events historically
+ 
 #All desorbed
 assert stats[0] == [0,0,0,0,0]
 
@@ -100,10 +103,11 @@ assert stats[12] == [0,5,17-8-5,17-8-5,86]
 #ALL BUT 1 desorb
 assert stats[13] == [ 0, 3, 1, 1,86]
 
+
+
+
+
 #CHECK TIMES OUTPUT, expect mostly 1 timestep adsorptions but 10 for 2 steps 
-
-
-
 assert len(np.where(np.array(times)==1)[0])==75
 assert len(np.where(np.array(times)==2)[0])==6 #One ion remains joined which is not added to the times
 

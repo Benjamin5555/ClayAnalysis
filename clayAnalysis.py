@@ -330,10 +330,10 @@ class ClayAnalysis:
             params: stop timestep to analyse 
             
             returns: 
-                list of stats at each time step on [# adsorption events, # desorption events,
-                                                    # continuing to be adsorbed,
-                                                    total adsorbed to surface at this time step,
-                                                    total # adsorption events]
+                list of stats at each time step on [# adsorption events @ts, # desorption events @ts,
+                                                    # continuing to be adsorbed from last ts,
+                                                    total adsorbed to surface @ ts,
+                                                    total # adsorption events up to this ts]
                 and 
                 list of times ions stayed adsorbed to the surface 
 
@@ -348,77 +348,125 @@ class ClayAnalysis:
         #TODO: Case where ions still adsorbed to the surface at the end -> times not recorded
         times = [] 
         
-        ads_w_time ={}# self.__setup_ads_w_time(adsorbed_to_surf)
+        prev_ads_record ={}  
+        # {surface_atom: {adsorbant:time adsorbed}}
+        # Record of surface atoms and their adsorbants as well as time adsorbed
+        
         stats = []
-        tot_ads = 0
+        counters = [0,0,0,0,0]
+        tot_ads = 0  
         
         print("Step,Num ads, num ds, num continue, num adsorbed tot at ts,total_adsorption events")
         for ts in self.universe.trajectory:
-                #for sid in surface_ids:
-                #counters
-                i_ad = 0 
-                i_ct = 0 
-                i_ds = 0
-                adsorbed_to_surf = self.find_adsorbed(surface_ids,adsorbant_ids,r_c)
+                #counters 
+                c_ad = 0  
+                c_ct = 0 
+                c_ds = 0
                 
-                ads = np.unique(list(adsorbed_to_surf.keys()))
-               
-
+                #Get surface atoms and attached ions  
+                # {surface_atom: adsorbant}
+                currently_ads_dict = self.find_adsorbed(surface_ids,adsorbant_ids,r_c)
+                
                 #If a surface ion is no longer sorbed to anything, we remove it from the list of stored ions
-                rm =   ads_w_time.keys() - adsorbed_to_surf.keys()
+                #TODO Combine into below loop?
+                rm =   prev_ads_record.keys() - currently_ads_dict.keys()
                 for rem_surf_at in rm:
-                    removed = ads_w_time.pop(rem_surf_at)
+                    removed = prev_ads_record.pop(rem_surf_at)
                     for rem_ion in removed:
                         times.append(removed[rem_ion])
-                        i_ds = i_ds +1 
+                        
+                        c_ds = c_ds +1 
                
-                #Look at each surface ion which has something adsorbed to it and compare to historic record of adsorpion info
-                for surf_atm in adsorbed_to_surf.keys():
-                     
-                    if(not surf_atm in ads_w_time.keys()):
-                        ads_w_time[surf_atm] = {}
+                #Look at each surface ion which has something adsorbed to it and compare to historic 
+                #record of adsorpion info (no interdependency other than stats)
+                for surf_atm in currently_ads_dict.keys():
                     
-                    ###########################    
-                    combo_keys = self.combine_atomgroups(list(ads_w_time[surf_atm].keys()))
-                    
-                   
-                     
-                    adsorbed = adsorbed_to_surf[surf_atm] - combo_keys #Current but not historic (newly adsorbed)
-                    for ads in adsorbed:
-                        i_ad = i_ad +1
-                        ads_w_time[surf_atm][ads]=1 #Assumes this to be starting point +-dt error
-                    increment_ads_time = adsorbed_to_surf[surf_atm] & combo_keys 
-                    
-                    #For those which stay adsorbed, we increment the time for which they have been adsorbed
-                    for inc in increment_ads_time: #Current and historic (no change)
-                        time = ads_w_time[surf_atm].pop(inc)
-                        ads_w_time[surf_atm][inc] = time+1#self.universe.dt
-                        i_ct = i_ct + 1
-                                          
-                    #Case for surface atoms that still have something adsorbed but not all that were
-                    #adsorbed in previous step
+                    #if surface atom not previously adsorbed to then will need to be added to record
+                    #dictionary
+                    if(not surf_atm in prev_ads_record.keys()):
+                        prev_ads_record[surf_atm] = {}
+                      
+                    #Combine together list of atoms adsorbed to the surface atom into a single 
+                    #atomgroup (to perform group operations)
+                    prev_adsorbed = self.combine_atomgroups(list(prev_ads_record[surf_atm].keys()))
+                    prev_ads_record_at_surf_atm = prev_ads_record[surf_atm]
 
 
-                    desorbed = combo_keys - adsorbed_to_surf[surf_atm] 
-                    for dsb in desorbed:
-                        times.append(ads_w_time[surf_atm].pop(dsb)) #Assumes this to be ending point +-dt error
-                        i_ds = i_ds+1
-                tot_ads = tot_ads + i_ad
-                stats.append([i_ad,i_ds,i_ct,self.__adsorbed_at_current_time(adsorbed_to_surf),tot_ads]) 
+                    currently_adsorbed = currently_ads_dict[surf_atm] 
+                    
+                    #Looking at in current but not historic (newly adsorbed)
+                    newly_adsorbed = currently_adsorbed - prev_adsorbed 
+                    c_ad= c_ad + self._update_record_w_newly_adsorbed(newly_adsorbed,prev_ads_record_at_surf_atm )
+                        
+                    #In both historic and current (continue to be adsorbed)
+                    continue_to_adsorb = currently_adsorbed & prev_adsorbed 
+            
+                    c_ct = c_ct + self._update_record_w_continuing_adsorbed(continue_to_adsorb,prev_ads_record_at_surf_atm )
+                    
+                    #Only in historic (desorbed this step) 
+                    newly_desorbed = prev_adsorbed - currently_adsorbed 
+                    c_ds = c_ds + self._update_record_w_newly_desorbed(newly_desorbed,prev_ads_record_at_surf_atm,times) 
+                    
+                tot_ads = tot_ads + c_ad
+                stats.append([c_ad,c_ds,c_ct,c_ad+c_ct,tot_ads]) 
                 
                 print([self.universe.trajectory.time]+stats[-1])
                 
 
-        #SHOULD CONSIDER THOSE STILL ADSORBED TO THE SURFACE AT END? Probably not would be artificial
         return times, stats
 
+    def _update_record_w_newly_adsorbed(self,newly_adsorbed,prev_ads_record_at_surf_atm):
+        """
+            Update 'historic record' of what is adsorbed at the previous timestep to add in any new 
+            ions that adsorb at that step
+        """
 
-    def __adsorbed_at_current_time(self, adsorbed_dict):
+        c_ad = 0
+        for ads in newly_adsorbed:
+            c_ad = c_ad +1
+            prev_ads_record_at_surf_atm[ads]=1 #Assumes this to be starting point +-dt error
+        return c_ad
+    
+    def _update_record_w_continuing_adsorbed(self,continue_to_adsorb,prev_ads_record_at_surf_atm):
+        """
+            Update the record of ions that are continuing to be adsorbed to a surface ion by 
+            increment the time for which they have been adsorbed
+        """
+        c_ct =0 
+        for inc in continue_to_adsorb: 
+            time = prev_ads_record_at_surf_atm.pop(inc)
+            prev_ads_record_at_surf_atm[inc] = time+1#self.universe.dt
+            c_ct = c_ct + 1
+        return c_ct            
+
+    def _update_record_w_newly_desorbed(self,newly_desorbed,prev_ads_record_at_surf_atm,times):
+        """
+            Update record for surface ions that were adsorbed to multiple ions but in the current 
+            time step have had one or more (but not all) of these desorb. Recording time overwhich 
+            they were adsorbed in # time steps
+        """
+        c_ds = 0 
+        for dsb in newly_desorbed:
+            times.append(prev_ads_record_at_surf_atm.pop(dsb)) #Assumes this to be ending point +-dt error
+            c_ds = c_ds+1
+        return c_ds 
+
+    def get_num_adsorbed_at_current_time(self, adsorbed_dict):
+        """
+            Return total number of ions adsorbed to surface in a time step
+        """
         count  = 0
         for surf_atm in adsorbed_dict.keys():
             for ads in adsorbed_dict[surf_atm]:
                 count = count+1      
         return count  
+
+
+
+
+
+
+
 
 
 #####################################CHARGE THROUGH A SURFACE
