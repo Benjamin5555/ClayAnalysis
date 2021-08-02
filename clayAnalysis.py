@@ -64,6 +64,12 @@ class ClayAnalysis:
         self.box_dims = self.get_box_dim()#start stop etc should be defined
         #print(self.box_dims)
         self.clay = self.universe.select_atoms("resname NON*")
+        try:
+            self.surface_group= self.generate_surface_group("minerals")#self.box_dims
+            self.lower_surface = self.combine_atomgroups(self.surface_group[0])
+            self.upper_surface = self.combine_atomgroups(self.surface_group[1])
+        except:
+            print("Could not determine the basal surfaces of model input")
 
     def combine_atomgroups(self,list_of_groups):
         """
@@ -321,7 +327,7 @@ class ClayAnalysis:
 
 
 
-    def adsorption_times(self,surface_ids,adsorbant_ids,r_c=0,start=0,stop=-1):
+    def find_adsorption_times_c(self,surface_ids,adsorbant_ids,r_c=0,start=0,stop=-1):
         """
             params: atomgroup.indices property of the surface group of interest being adsorbed to
             params: resname of adsorbants to be adsorbed to surface
@@ -464,9 +470,60 @@ class ClayAnalysis:
 
 
 
+    def find_adsorption_times(self,surface_ids,adsorbant_ids,r_c=0,start=0,stop=-1):
+        """
 
+        """
+        current_adsorbed = self.universe.select_atoms("")
+        historic_adsorbed = {}
+        times = [] 
+        stats = []
+        tot_ads = 0
+        print("------------------------")
+        print(self.universe.trajectory)
+        print(self.universe.atoms)
+        print("------------------------")
+        for ts in self.universe.trajectory:
 
+            #counters 
+            c_ad = 0  
+            c_ct = 0 
+            c_ds = 0
 
+            for surf_id in surface_ids:
+                for ad_id in adsorbant_ids:
+                    self.lower_surface
+                    self.upper_surface
+                    search_strs+= "(resname " + str(ad_id) + " and around "+ str(r_c) + " index "+str(surf_id)+") or "
+                        #Might be quicker to do as two lists
+                               
+                    #surf_id = self.universe.select_atoms("index "+str(surface_ids[i]))
+                    current_adsorbed = self.universe.select_atoms(search_strs[:-3])
+                    hist_ads_grp = self.combine_atomgroups(historic_adsorbed.keys())
+                    desorbed = hist_ads_grp - current_adsorbed
+                    adsorbed = current_adsorbed - hist_ads_grp
+                    cont_ads = current_adsorbed & hist_ads_grp
+
+            for ads in adsorbed:
+                historic_adsorbed[ads] = 1 # Add a time adsorbed for
+                c_ad = c_ad + 1
+    
+            for c_ad in cont_ads:
+                historic_adsorbed[c_ad] += 1 
+                c_ct = c_ct + 1
+
+            for desorbed_id in desorbed:
+                times.append(historic_adsorbed.pop(desorbed_id))
+                c_ds = c_ds + 1
+            
+            tot_ads = tot_ads + c_ad
+            stats.append([c_ad,c_ds,c_ct,c_ad+c_ct,tot_ads]) 
+
+        return times, stats
+        
+
+                    
+                
 
 
 #####################################CHARGE THROUGH A SURFACE
@@ -495,3 +552,7 @@ class ClayAnalysis:
         plt.show()
 
 
+
+
+#if __name__ == "__main__":
+    
