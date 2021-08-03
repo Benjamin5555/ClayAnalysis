@@ -197,7 +197,7 @@ def test_adsorption_times_simple():
     assert len(np.where(np.array(times)==3)[0])==4
 
 
-test_adsorption_times_simple()
+#test_adsorption_times_simple()
 test_adsorption_times_complex()
 
 

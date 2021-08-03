@@ -17,7 +17,7 @@ from MDAnalysis import transformations
 from MDAnalysis import analysis
 import scipy.stats as stats
 from scipy.signal import find_peaks
-
+import sys
 
 
 def plot_group(grp,fig=None,ax=None,lable=None):
@@ -28,7 +28,7 @@ def plot_group(grp,fig=None,ax=None,lable=None):
     upper_x = np.transpose(grp.positions)[0]
     upper_y = np.transpose(grp.positions)[1]
     upper_z = np.transpose(grp.positions)[2]
-
+    
         # non_surf = clay.select_atoms("resname "+sel).difference(ag_upper)
         # print(non_surf)
 
@@ -62,9 +62,10 @@ class ClayAnalysis:
         #self.box_dims = self.universe
         #print(self.box_dims)
         self.box_dims = self.get_box_dim()#start stop etc should be defined
-        #print(self.box_dims)
         self.clay = self.universe.select_atoms("resname NON*")
-
+        print(self.clay.center_of_mass())
+        #self.move_clay_to_origin()
+        
     def combine_atomgroups(self,list_of_groups):
         """
             param: List of atomgroup objects
@@ -125,41 +126,46 @@ class ClayAnalysis:
 
 
                 
-    def get_partial_density(self, box_dims, sel, bins=100, start=0, stop=-1):
+    def get_partial_density(self, box_dims, sel, bins=100, start=0, stop=-1,density=False):
         '''        
         params: universe
         params: box_dims measuring box dimensions along z [frame, min, max, dim]
-        params: selection name of residue(s) of interest
+        params: selection string in form e.g. 'resname NON*'
         params: number of bins
         params: start first frame to study
         params: stop last frame to study
         returns: density at each timepoint
+
+       
         '''
-        print("Calculating partial densitiy for selection" +str(sel))
-        print("NOTE: This currently uses only the data from the final trajectory frame") 
+        print("Calculating partial densitiy for selection " +str(sel))
         mol = self.universe.select_atoms(sel)
         res = [] #density collector
-                
+        #print(mol)   
         cnt = 0
+        print("NOTE NOT USING MASSES AS WEIGHT FOR PARTIAL DENSITYS")
         if(self.universe.trajectory.n_frames>1):
                 for ts in self.universe.trajectory[start:stop]:
 
                     curr_box = box_dims[cnt]
                     binning = np.linspace(curr_box[1]-1, curr_box[2]+1, bins)
-                    
-                    result = np.histogram(mol.atoms.positions[:, 2], weights=mol.masses, bins=binning)    
+                   
+                    #print(mol.atoms.positions[:,2])
+                    #print(mol.masses)
+                    #result = np.histogram(mol.atoms.positions[:, 2], weights=mol.masses, bins=binning)
+                    result = np.histogram(mol.atoms.positions[:, 2],  bins=binning)
+
                     res.append(result)
 
                     #logger.debug(">> frame %s density..."%ts.frame)
                     cnt += 1
-        
         else:
                 curr_box = box_dims[0]
                 binning = np.linspace(curr_box[1]-1, curr_box[2]+1, bins)
                     
                 result = np.histogram(mol.atoms.positions[:, 2], weights=mol.masses, bins=binning)
                 res.append(result)
-        return result
+        return res
 
 
 
@@ -179,38 +185,16 @@ class ClayAnalysis:
 
 ###End of Mostly stolen from dynden (should import instead)########
 
-
-    def plot_average_density_t(self,res_density_w_time):#,z_max=133.69):
-        """
-        Plots the time averaged density distribution of all passed
-        res_densitys from DynDen function output
-        TODO generalise, Makes use of partial densities function of DynDen, make use of binning
-        from r[0] info
-        """
-    
-        t_steps = len(res_density_w_time[0])
-        z_steps = len(res_density_w_time[0][0])
-        #Bin overall size needs to be linked to the max size of system and number of points
-        ids = ["Non OW", "STs", "ATs"]
-        r_avgs = []
-        i = 0 
-        for r in res_density_w_time:
-            
-            #Make use of existing bin data to plot
-            r_avg_t = np.array(r[0])
-             
-    
-            for t in range(1,len(r)):
-                r_avg_t = r_avg_t + r[0][t]
-   
-
-
-            zpoints = (r[1][1:] + r[1][:-1]) / 2 #Use midpoint of bins
-
-            plt.plot(zpoints,r[0])
                         
-
-
+    def plot_density_w_time(self,selection,label=None):
+        self.move_clay_to_origin()
+        print("HERE") 
+        den = self.get_partial_density(self.box_dims," or ".join(["resname "+s for s in np.unique(selection.resnames)]))
+        z_points = (den[0][1][1:] + den[0][1][:-1]) / 2
+        for t_step in range(len(den)):
+            sum_den = den[t_step][0]
+        avg_den = sum_den/len(den[0])
+        plt.plot(z_points,avg_den,label=label)
 
 ############Determining basal surfaces
 
@@ -229,14 +213,14 @@ class ClayAnalysis:
         """
         print("Determining basal surfaces of the clay:") 
         print("NOTE: This will transform the system such that the clay center of mass is at the origin") 
+
         try:
-                self.move_clay_to_origin()
+            self.move_clay_to_origin()
         except ValueError:
             print("Clay already centered to origin")
         if(box_dims == None):
             box_dims = self.box_dims
         
-
         cly_comp = []
         density=[]
         lower_layers = []
@@ -252,8 +236,9 @@ class ClayAnalysis:
                 peakNum = [6,8]
         #hist_boxes_to_ midpoints
 
-        z_points = (den[1][1:] + den[1][:-1]) / 2
-        minima = get_minima_coords(z_points,den[0])
+        #Makes use of initial state only
+        z_points = (den[0][1][1:] + den[0][1][:-1]) / 2
+        minima = get_minima_coords(z_points,den[0][0])
         #Want to find the z axis boundary of the lower clay basal surface
 
         lower_surface_bounds = minima[peakNum[0]-1:peakNum[0]+1]
@@ -276,7 +261,7 @@ class ClayAnalysis:
                                                  +  " and prop z < "+str(upper_surface_bounds[1])))
             
             except IndexError: #If density is entirely 0
-                print("Error looking at surfaces of  resname " + resname + " (might be caused by it having no density or obvious minimums?)")
+                print("Error looking at surfaces of selection " + sel + " (might be caused by it having no density or obvious minimums?)")
                
         
         return [lower_layers,upper_layers]
@@ -301,8 +286,11 @@ class ClayAnalysis:
         """
         
         adsorbed_to_surf = {}
-        
+        print(r_c) 
+        print(surface_ids)
+        print(adsorbants_resnames)
         for i in range(len(surface_ids)):
+            
             search_strs= ""
             adsorbed = self.universe.select_atoms("")
             
@@ -323,15 +311,13 @@ class ClayAnalysis:
         """
 
         """
+        self.universe.trajectory[0]
         current_adsorbed = self.universe.select_atoms("")
         historic_adsorbed = {}
         times = [] 
         stats = []
         tot_ads = 0
-        print("------------------------")
-        print(self.universe.trajectory)
-        print(self.universe.atoms)
-        print("------------------------")
+        
         for ts in self.universe.trajectory:
 
             #counters 
@@ -354,20 +340,20 @@ class ClayAnalysis:
                     adsorbed = current_adsorbed - hist_ads_grp
                     cont_ads = current_adsorbed & hist_ads_grp
 
-            for ads in adsorbed:
-                historic_adsorbed[ads] = 1 # Add a time adsorbed for
-                c_ad = c_ad + 1
+                for ads_id in adsorbed:
+                    historic_adsorbed[ads_id] = 1 # Add a time adsorbed for
+                    c_ad = c_ad + 1
     
-            for c_ad in cont_ads:
-                historic_adsorbed[c_ad] += 1 
-                c_ct = c_ct + 1
+                for ct_id in cont_ads:
+                    historic_adsorbed[ct_id] += 1 
+                    c_ct = c_ct + 1
 
-            for desorbed_id in desorbed:
-                times.append(historic_adsorbed.pop(desorbed_id))
-                c_ds = c_ds + 1
-            
-            tot_ads = tot_ads + c_ad
-            stats.append([c_ad,c_ds,c_ct,c_ad+c_ct,tot_ads]) 
+                for desorbed_id in desorbed:
+                    times.append(historic_adsorbed.pop(desorbed_id))
+                    c_ds = c_ds + 1
+                
+                tot_ads = tot_ads + c_ad
+                stats.append([c_ad,c_ds,c_ct,c_ad+c_ct,tot_ads]) 
 
         return times, stats
 
@@ -420,7 +406,7 @@ class ClayAnalysis:
                 #Get surface atoms and attached ions  
                 # {surface_atom: adsorbant}
                 currently_ads_dict = self.find_adsorbed(surface_ids,adsorbant_ids,r_c)
-                
+                 
                 #If a surface ion is no longer sorbed to anything, we remove it from the list of stored ions
                 #TODO Combine into below loop?
                 rm =   prev_ads_record.keys() - currently_ads_dict.keys()
@@ -445,9 +431,10 @@ class ClayAnalysis:
                     prev_adsorbed = self.combine_atomgroups(list(prev_ads_record[surf_atm].keys()))
                     prev_ads_record_at_surf_atm = prev_ads_record[surf_atm]
 
-
+                
                     currently_adsorbed = currently_ads_dict[surf_atm] 
                     
+                    print(currently_adsorbed.n_atoms)    
                     #Looking at in current but not historic (newly adsorbed)
                     newly_adsorbed = currently_adsorbed - prev_adsorbed 
                     c_ad= c_ad + self._update_record_w_newly_adsorbed(newly_adsorbed,prev_ads_record_at_surf_atm )
@@ -533,7 +520,6 @@ class ClayAnalysis:
 
         im = plt.hist2d(Xs,Ys,weights=selection.atoms.charges,bins=200)
         if(interpolate):
-            print(self.universe.dimensions)
             ax.imshow(im[0], interpolation = "gaussian",extent=[0,self.universe.dimensions[0],0,self.universe.dimensions[1]])
 
         fig.colorbar(im[3])
@@ -543,5 +529,47 @@ class ClayAnalysis:
 
 
 
-#if __name__ == "__main__":
-    
+if __name__ == "__main__":
+    if len(sys.argv) == 0:
+        print("usage:")
+        print("topology file, trajectory file, mode, mode specific options")
+        print("Modes:")
+        print("0 : Plot densities, mode specific options: selection strings e.g. 'resname NON*,resname Cs'")
+    topfile = sys.argv[1] 
+    trajfile = sys.argv[2]
+    mode = sys.argv[3]
+
+    u = mda.Universe(topfile,trajfile,topology_format='ITP')
+    #u = mda.Universe("TestFiles/test_sys.pdb","TestFiles/test_sys.pdb")
+    print(u.trajectory.ts)
+    cal = ClayAnalysis(u)
+
+    if mode == "0" :
+        #Density analysis
+        sel_strs = sys.argv[4:]
+        for sel_str in sel_strs:
+            selection = u.atoms.select_atoms(sel_str)
+            print(np.unique(selection.resnames))
+            print(selection.n_atoms)
+            cal.plot_density_w_time(selection,label=sel_str)
+        plt.legend()
+        plt.show()
+
+    if mode == "2":
+        #Adsorption times
+        cal.move_clay_to_origin()
+        r_c = float(sys.argv[4])
+        ads_sel_str = sys.argv[5]
+        ads = u.atoms.select_atoms(ads_sel_str)
+        lower_layers,upper_layers = cal.generate_surface_group("mineral")
+        
+        lower_surf_grp = cal.combine_atomgroups(lower_layers)
+        upper_surf_grp = cal.combine_atomgroups(upper_layers)
+        print(lower_surf_grp)
+        print(upper_surf_grp)
+        surf_grp = lower_surf_grp + upper_surf_grp
+        print(surf_grp)
+        print(1/0)
+        print(cal.find_adsorption_times_c(surf_grp.indices,ads.indices,r_c))
+
+
