@@ -1,7 +1,10 @@
 import parmed as pmd
+import sys
 
-top = pmd.load_file("control.top")
+top_path = sys.argv[1]
+psf_out = sys.argv[2]
 
-traj = pmd.load_file("control.trr")
+top = pmd.load_file(top_path)
 
-top.save("control.psf",vmd=True)
+
+top.save(psf_out,vmd=True)

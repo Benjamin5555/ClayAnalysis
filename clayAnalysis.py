@@ -8,8 +8,8 @@ TODO get_partial_density function currently only returns a single partial densit
 
 """
 import MDAnalysis as mda
-import nglview as nv
-from nglview.datafiles import PDB, XTC
+#import nglview as nv
+#from nglview.datafiles import PDB, XTC
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
@@ -18,7 +18,7 @@ from MDAnalysis import analysis
 import scipy.stats as stats
 from scipy.signal import find_peaks
 import sys
-
+import csv
 
 def plot_group(grp,fig=None,ax=None,lable=None):
     if fig ==None:
@@ -59,12 +59,9 @@ class ClayAnalysis:
 
     def __init__(self,u):
         self.universe = u
-        #self.box_dims = self.universe
-        #print(self.box_dims)
         self.box_dims = self.get_box_dim()#start stop etc should be defined
         self.clay = self.universe.select_atoms("resname NON*")
-        print(self.clay.center_of_mass())
-        #self.move_clay_to_origin()
+        self.move_clay_to_origin()
         
     def combine_atomgroups(self,list_of_groups):
         """
@@ -143,7 +140,6 @@ class ClayAnalysis:
         res = [] #density collector
         #print(mol)   
         cnt = 0
-        print("NOTE NOT USING MASSES AS WEIGHT FOR PARTIAL DENSITYS")
         if(self.universe.trajectory.n_frames>1):
                 for ts in self.universe.trajectory[start:stop]:
 
@@ -152,8 +148,8 @@ class ClayAnalysis:
                    
                     #print(mol.atoms.positions[:,2])
                     #print(mol.masses)
-                    #result = np.histogram(mol.atoms.positions[:, 2], weights=mol.masses, bins=binning)
-                    result = np.histogram(mol.atoms.positions[:, 2],  bins=binning)
+                    result = np.histogram(mol.atoms.positions[:, 2], weights=mol.masses, bins=binning)
+                    #result = np.histogram(mol.atoms.positions[:, 2],  bins=binning)
 
                     res.append(result)
 
@@ -187,8 +183,6 @@ class ClayAnalysis:
 
                         
     def plot_density_w_time(self,selection,label=None):
-        self.move_clay_to_origin()
-        print("HERE") 
         den = self.get_partial_density(self.box_dims," or ".join(["resname "+s for s in np.unique(selection.resnames)]))
         z_points = (den[0][1][1:] + den[0][1][:-1]) / 2
         for t_step in range(len(den)):
@@ -284,11 +278,7 @@ class ClayAnalysis:
         Creates a dictionary of atomgroups, which links a surface atom to a number of adsorbant ions
 
         """
-        
         adsorbed_to_surf = {}
-        print(r_c) 
-        print(surface_ids)
-        print(adsorbants_resnames)
         for i in range(len(surface_ids)):
             
             search_strs= ""
@@ -297,17 +287,20 @@ class ClayAnalysis:
             for p_ad in adsorbants_resnames: #Don't think need to do the around thing every time here?
                 search_strs+= "(resname " + str(p_ad) + " and around "+ str(r_c) + " index "+str(surface_ids[i])+") or "
                 #Might be quicker to do as two lists
-                       
+            #print("SEARCH STRING")
+            #print(search_strs)   
+            #print("IDS Adsorbed")
+
             surf_id = self.universe.select_atoms("index "+str(surface_ids[i]))
             adsorbed = self.universe.select_atoms(search_strs[:-3])
+            #print(adsorbed)
             if (not adsorbed.n_atoms == 0):  
                 
                 #If not adsorbed to anything, don't bother adding to dict
                 adsorbed_to_surf[surf_id]= adsorbed
-             
         return adsorbed_to_surf
 
-    def find_adsorption_times(self,surface_ids,adsorbant_ids,r_c=0,start=0,stop=-1):
+    def find_adsorption_times(self,surface_ids,adsorbant_resname,r_c=0,start=0,stop=-1):
         """
 
         """
@@ -327,10 +320,10 @@ class ClayAnalysis:
             
             for surf_id in surface_ids:
                 search_strs= ""
-                for ad_id in adsorbant_ids:
+                for ad_rn in adsorbant_resname:
                     #self.lower_surface
                     #self.upper_surface
-                    search_strs+= "(resname " + str(ad_id) + " and around "+ str(r_c) + " index "+str(surf_id)+") or "
+                    search_strs+= "(resname " + str(ad_rn) + " and around "+ str(r_c) + " index "+str(surf_id)+") or "
                         #Might be quicker to do as two lists
                                
                     #surf_id = self.universe.select_atoms("index "+str(surface_ids[i]))
@@ -340,25 +333,25 @@ class ClayAnalysis:
                     adsorbed = current_adsorbed - hist_ads_grp
                     cont_ads = current_adsorbed & hist_ads_grp
 
-                for ads_id in adsorbed:
-                    historic_adsorbed[ads_id] = 1 # Add a time adsorbed for
-                    c_ad = c_ad + 1
+                    for ads_id in adsorbed:
+                        historic_adsorbed[ads_id] = 1 # Add a time adsorbed for
+                        c_ad = c_ad + 1
     
-                for ct_id in cont_ads:
-                    historic_adsorbed[ct_id] += 1 
-                    c_ct = c_ct + 1
+                    for ct_id in cont_ads:
+                        historic_adsorbed[ct_id] += 1 
+                        c_ct = c_ct + 1
 
-                for desorbed_id in desorbed:
-                    times.append(historic_adsorbed.pop(desorbed_id))
-                    c_ds = c_ds + 1
-                
-                tot_ads = tot_ads + c_ad
-                stats.append([c_ad,c_ds,c_ct,c_ad+c_ct,tot_ads]) 
-
+                    for desorbed_id in desorbed:
+                        times.append(historic_adsorbed.pop(desorbed_id))
+                        c_ds = c_ds + 1
+                    
+            tot_ads = tot_ads + c_ad
+            stats.append([c_ad,c_ds,c_ct,c_ad+c_ct,tot_ads]) 
+            print([self.universe.trajectory.ts,self.universe.trajectory.time]+stats[-1])
         return times, stats
 
 
-    def find_adsorption_times_c(self,surface_ids,adsorbant_ids,r_c=0,start=0,stop=-1):
+    def find_adsorption_times_c(self,surface_ids,adsorbant_resname,r_c=0,start=0,stop=-1):
         """
             params: atomgroup.indices property of the surface group of interest being adsorbed to
             params: resname of adsorbants to be adsorbed to surface
@@ -397,62 +390,65 @@ class ClayAnalysis:
         tot_ads = 0  
         
         print("Step,Num ads, num ds, num continue, num adsorbed tot at ts,total_adsorption events")
-        for ts in self.universe.trajectory:
-                #counters 
-                c_ad = 0  
-                c_ct = 0 
-                c_ds = 0
-                
-                #Get surface atoms and attached ions  
-                # {surface_atom: adsorbant}
-                currently_ads_dict = self.find_adsorbed(surface_ids,adsorbant_ids,r_c)
-                 
-                #If a surface ion is no longer sorbed to anything, we remove it from the list of stored ions
-                #TODO Combine into below loop?
-                rm =   prev_ads_record.keys() - currently_ads_dict.keys()
-                for rem_surf_at in rm:
-                    removed = prev_ads_record.pop(rem_surf_at)
-                    for rem_ion in removed:
-                        times.append(removed[rem_ion])
+        with open('stats.csv', 'w', newline='') as csvfile:
+                statWriter = csv.writer(csvfile, delimiter=',')
+ 
+                for ts in self.universe.trajectory:
+                        #counters 
+                        c_ad = 0  
+                        c_ct = 0 
+                        c_ds = 0
                         
-                        c_ds = c_ds +1 
-               
-                #Look at each surface ion which has something adsorbed to it and compare to historic 
-                #record of adsorpion info (no interdependency other than stats)
-                for surf_atm in currently_ads_dict.keys():
-                    
-                    #if surface atom not previously adsorbed to then will need to be added to record
-                    #dictionary
-                    if(not surf_atm in prev_ads_record.keys()):
-                        prev_ads_record[surf_atm] = {}
-                      
-                    #Combine together list of atoms adsorbed to the surface atom into a single 
-                    #atomgroup (to perform group operations)
-                    prev_adsorbed = self.combine_atomgroups(list(prev_ads_record[surf_atm].keys()))
-                    prev_ads_record_at_surf_atm = prev_ads_record[surf_atm]
+                        #Get surface atoms and attached ions  
+                        # {surface_atom: adsorbant}
+                        currently_ads_dict = self.find_adsorbed(surface_ids,adsorbant_resname,r_c)
+                        print(currently_ads_dict) 
+                        #If a surface ion is no longer sorbed to anything, we remove it from the list of stored ions
+                        #TODO Combine into below loop?
+                        rm =   prev_ads_record.keys() - currently_ads_dict.keys()
+                        for rem_surf_at in rm:
+                            removed = prev_ads_record.pop(rem_surf_at)
+                            for rem_ion in removed:
+                                times.append(removed[rem_ion])
+                                
+                                c_ds = c_ds +1 
+                       
+                        #Look at each surface ion which has something adsorbed to it and compare to historic 
+                        #record of adsorpion info (no interdependency other than stats)
+                        for surf_atm in currently_ads_dict.keys():
+                            
+                            #if surface atom not previously adsorbed to then will need to be added to record
+                            #dictionary
+                            if(not surf_atm in prev_ads_record.keys()):
+                                prev_ads_record[surf_atm] = {}
+                              
+                            #Combine together list of atoms adsorbed to the surface atom into a single 
+                            #atomgroup (to perform group operations)
+                            prev_adsorbed = self.combine_atomgroups(list(prev_ads_record[surf_atm].keys()))
+                            prev_ads_record_at_surf_atm = prev_ads_record[surf_atm]
 
-                
-                    currently_adsorbed = currently_ads_dict[surf_atm] 
-                    
-                    print(currently_adsorbed.n_atoms)    
-                    #Looking at in current but not historic (newly adsorbed)
-                    newly_adsorbed = currently_adsorbed - prev_adsorbed 
-                    c_ad= c_ad + self._update_record_w_newly_adsorbed(newly_adsorbed,prev_ads_record_at_surf_atm )
                         
-                    #In both historic and current (continue to be adsorbed)
-                    continue_to_adsorb = currently_adsorbed & prev_adsorbed 
-            
-                    c_ct = c_ct + self._update_record_w_continuing_adsorbed(continue_to_adsorb,prev_ads_record_at_surf_atm )
+                            currently_adsorbed = currently_ads_dict[surf_atm] 
+                                            
+                            #Looking at in current but not historic (newly adsorbed)
+                            newly_adsorbed = currently_adsorbed - prev_adsorbed 
+                            c_ad= c_ad + self._update_record_w_newly_adsorbed(newly_adsorbed,prev_ads_record_at_surf_atm )
+                                
+                            #In both historic and current (continue to be adsorbed)
+                            continue_to_adsorb = currently_adsorbed & prev_adsorbed 
                     
-                    #Only in historic (desorbed this step) 
-                    newly_desorbed = prev_adsorbed - currently_adsorbed 
-                    c_ds = c_ds + self._update_record_w_newly_desorbed(newly_desorbed,prev_ads_record_at_surf_atm,times) 
-                    
-                tot_ads = tot_ads + c_ad
-                stats.append([c_ad,c_ds,c_ct,c_ad+c_ct,tot_ads]) 
-                
-                print([self.universe.trajectory.time]+stats[-1])
-                
+                            c_ct = c_ct + self._update_record_w_continuing_adsorbed(continue_to_adsorb,prev_ads_record_at_surf_atm )
+                            
+                            #Only in historic (desorbed this step) 
+                            newly_desorbed = prev_adsorbed - currently_adsorbed 
+                            c_ds = c_ds + self._update_record_w_newly_desorbed(newly_desorbed,prev_ads_record_at_surf_atm,times) 
+                            
+                        tot_ads = tot_ads + c_ad
+                        stats.append([c_ad,c_ds,c_ct,c_ad+c_ct,tot_ads]) 
+                        
+                        print([self.universe.trajectory.ts,self.universe.trajectory.time]+stats[-1])
+                                        
+                        statWriter.writerow(stats[-1])
 
         return times, stats
 
@@ -538,12 +534,13 @@ if __name__ == "__main__":
     topfile = sys.argv[1] 
     trajfile = sys.argv[2]
     mode = sys.argv[3]
-
-    u = mda.Universe(topfile,trajfile,topology_format='ITP')
+    if(topfile[-3:] =="top"):
+        u = mda.Universe(topfile,trajfile,topology_format='ITP')
+    else:
+        u = mda.Universe(topfile,trajfile)
     #u = mda.Universe("TestFiles/test_sys.pdb","TestFiles/test_sys.pdb")
-    print(u.trajectory.ts)
     cal = ClayAnalysis(u)
-
+    
     if mode == "0" :
         #Density analysis
         sel_strs = sys.argv[4:]
@@ -556,8 +553,8 @@ if __name__ == "__main__":
         plt.show()
 
     if mode == "2":
-        #Adsorption times
-        cal.move_clay_to_origin()
+        print("Adsorption times analysis")
+        #cal.move_clay_to_origin()
         r_c = float(sys.argv[4])
         ads_sel_str = sys.argv[5]
         ads = u.atoms.select_atoms(ads_sel_str)
@@ -565,11 +562,9 @@ if __name__ == "__main__":
         
         lower_surf_grp = cal.combine_atomgroups(lower_layers)
         upper_surf_grp = cal.combine_atomgroups(upper_layers)
-        print(lower_surf_grp)
-        print(upper_surf_grp)
+        #print(lower_surf_grp)
+        #print(upper_surf_grp)
         surf_grp = lower_surf_grp + upper_surf_grp
-        print(surf_grp)
-        print(1/0)
-        print(cal.find_adsorption_times_c(surf_grp.indices,ads.indices,r_c))
+        print(cal.find_adsorption_times(surf_grp.indices,ads.resnames,r_c))
 
 
