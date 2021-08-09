@@ -188,7 +188,6 @@ class ClayAnalysis:
         for t_step in range(len(den)):
             sum_den = den[t_step][0]
         avg_den = sum_den/len(den[0])
-        plt.xticks(np.arange(z_points[0], z_points[-1],1 ))
         plt.plot(z_points,avg_den,label=label)
         plt.savefig(label+" density.png")
 
@@ -269,7 +268,7 @@ class ClayAnalysis:
 ###############################Adsorption analysis
 
 
-    def find_adsorbed(self,surface_ids,adsorbants_resnames,r_c=0):#,r_c=10):
+    def find_adsorbed(self,surface_ids,adsorbants_resnames,r_c_upper,r_c_lower=0):#,r_c=10):
 
         """
         params: index of atoms at the surface of clay
@@ -287,11 +286,9 @@ class ClayAnalysis:
             adsorbed = self.universe.select_atoms("")
             
             for p_ad in adsorbants_resnames: #Don't think need to do the around thing every time here?
-                search_strs+= "(resname " + str(p_ad) + " and around "+ str(r_c) + " index "+str(surface_ids[i])+") or "
+                search_strs+= "(resname " + str(p_ad) + " and sphlayer "+ str(r_c_lower) + " "+str(r_c_upper) +" index "+str(surface_ids[i])+") or "
+                #search_strs+= "(resname " + str(p_ad) + " and around "+ str(r_c) + " index "+str(surface_ids[i])+") or "
                 #Might be quicker to do as two lists
-            #print("SEARCH STRING")
-            #print(search_strs)   
-            #print("IDS Adsorbed")
 
             surf_id = self.universe.select_atoms("index "+str(surface_ids[i]))
             adsorbed = self.universe.select_atoms(search_strs[:-3])
@@ -302,9 +299,9 @@ class ClayAnalysis:
                 adsorbed_to_surf[surf_id]= adsorbed
         return adsorbed_to_surf
 
-    def find_adsorption_times(self,surface_ids,adsorbant_resname,r_c=0,start=0,stop=-1):
+    def find_adsorption_times(self,surface_ids,adsorbant_resname,r_c_upper=0,r_c_lower=0,start=0,stop=-1):
         """
-
+                 
         """
         adsorbant_resname = np.unique(adsorbant_resname)
         self.universe.trajectory[0]
@@ -321,10 +318,10 @@ class ClayAnalysis:
         #surf A ub
         #surf A lb
 
-        surf_b_ub = max(surface_group.positions.T[2])
-        surf_b_lb = max(surface_group.positions.T[2]-r_c)
-        surf_a_ub = min(surface_group.positions.T[2]+r_c)
-        surf_a_lb = min(surface_group.positions.T[2])
+        surf_b_ub = max(surface_group.positions.T[2]-r_c_lower)
+        surf_b_lb = max(surface_group.positions.T[2]-r_c_upper)
+        surf_a_ub = min(surface_group.positions.T[2]+r_c_uppper)
+        surf_a_lb = min(surface_group.positions.T[2]+r_c_lower)
 
         print(surf_b_ub)
         print(surf_b_lb)
@@ -384,7 +381,7 @@ class ClayAnalysis:
         return times, stats
 
 
-    def find_adsorption_times_c(self,surface_ids,adsorbant_resname,r_c=0,start=0,stop=-1):
+    def find_adsorption_times_c(self,surface_ids,adsorbant_resname,r_c_upper=0,r_c_lower=0,start=0,stop=-1):
         """
             params: atomgroup.indices property of the surface group of interest being adsorbed to
             params: resname of adsorbants to be adsorbed to surface
@@ -434,7 +431,7 @@ class ClayAnalysis:
                         
                         #Get surface atoms and attached ions  
                         # {surface_atom: adsorbant}
-                        currently_ads_dict = self.find_adsorbed(surface_ids,adsorbant_resname,r_c)
+                        currently_ads_dict = self.find_adsorbed(surface_ids,adsorbant_resname,r_c_uppper,r_c_lower)
                         print(currently_ads_dict) 
                         #If a surface ion is no longer sorbed to anything, we remove it from the list of stored ions
                         #TODO Combine into below loop?
