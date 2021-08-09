@@ -146,10 +146,7 @@ class ClayAnalysis:
                     curr_box = box_dims[cnt]
                     binning = np.linspace(curr_box[1]-1, curr_box[2]+1, bins)
                    
-                    #print(mol.atoms.positions[:,2])
-                    #print(mol.masses)
                     result = np.histogram(mol.atoms.positions[:, 2], weights=mol.masses, bins=binning)
-                    #result = np.histogram(mol.atoms.positions[:, 2],  bins=binning)
 
                     res.append(result)
 
@@ -310,24 +307,19 @@ class ClayAnalysis:
         times = [] 
         stats = []
         tot_ads = 0
-        surface_group = self.universe.select_atoms("")
-        for surf_id in surface_ids:
-                surface_group = surface_group + self.universe.select_atoms("index "+str(surf_id))
         #surf B ub
         #surf B lb
         #surf A ub
         #surf A lb
 
-        surf_b_ub = max(surface_group.positions.T[2]-r_c_lower)
-        surf_b_lb = max(surface_group.positions.T[2]-r_c_upper)
-        surf_a_ub = min(surface_group.positions.T[2]+r_c_uppper)
-        surf_a_lb = min(surface_group.positions.T[2]+r_c_lower)
+        avg_surf_b = np.average(upper_surface.positions.T[2])
+        avg_surf_a = np.average(lower_surface.positions.T[2])
+        surf_b_ub = avg_surf_b-r_c_lower
+        surf_b_lb = avg_surf_b-r_c_upper 
+        surf_a_ub = avg_surf_a+r_c_upper 
+        surf_a_lb = avg_surf_a+r_c_lower
 
-        print(surf_b_ub)
-        print(surf_b_lb)
-        print(surf_a_ub)
-        print(surf_a_lb)
-        print(adsorbant_resname)
+
         with open('stats.csv', 'w', newline='') as csvfile:
                 statWriter = csv.writer(csvfile, delimiter=',')
 
@@ -479,7 +471,7 @@ class ClayAnalysis:
                         print([self.universe.trajectory.ts,self.universe.trajectory.time]+stats[-1])
                                         
                         statWriter.writerow(stats[-1])
-
+        np.savetxt("ouputTimes.txt",times)
         return times, stats
 
     def _update_record_w_newly_adsorbed(self,newly_adsorbed,prev_ads_record_at_surf_atm):
@@ -595,7 +587,5 @@ if __name__ == "__main__":
         upper_surf_grp = cal.combine_atomgroups(upper_layers)
         #print(lower_surf_grp)
         #print(upper_surf_grp)
-        surf_grp = lower_surf_grp + upper_surf_grp
-        print(cal.find_adsorption_times(surf_grp.indices,ads.resnames,r_c))
-
+        print(cal.find_adsorption_times(lower_surf_grp,upper_surf_grp,ads.resnames,r_c))
 
