@@ -8,8 +8,8 @@ TODO get_partial_density function currently only returns a single partial densit
 
 """
 import MDAnalysis as mda
-import nglview as nv
-from nglview.datafiles import PDB, XTC
+#import nglview as nv
+#from nglview.datafiles import PDB, XTC
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
