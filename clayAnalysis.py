@@ -20,6 +20,33 @@ from scipy.signal import find_peaks
 import sys
 import csv
 
+
+def hist(x_data,bins=None,NumBins=None,x_title=None,y_title=None,y_labels=None,title=None):
+        """
+            Creates histogram from some data set
+            returns histogram_data(freq), bins to be unpacked
+        """
+        
+        if(NumBins==None and bins==None):
+            bins = len(x_data)
+        elif(bins==None):
+            bins = NumBins
+        
+        ns,bins,*_ = plt.hist(x_data,bins, alpha=0.75)    
+    
+        # Set axes, titles and legend
+        plt.title(title)
+       
+        plt.ylabel(y_title)
+        plt.xlabel(x_title)
+        #plt.set_ylim([x_data])
+        #plt.legend()
+        #plt.show()
+
+        plt.savefig(str(title)+".png")
+        plt.show()
+        return ns,bins
+
 def plot_group(grp,fig=None,ax=None,lable=None):
     if fig ==None:
         fig = plt.figure()
@@ -146,10 +173,7 @@ class ClayAnalysis:
                     curr_box = box_dims[cnt]
                     binning = np.linspace(curr_box[1]-1, curr_box[2]+1, bins)
                    
-                    #print(mol.atoms.positions[:,2])
-                    #print(mol.masses)
                     result = np.histogram(mol.atoms.positions[:, 2], weights=mol.masses, bins=binning)
-                    #result = np.histogram(mol.atoms.positions[:, 2],  bins=binning)
 
                     res.append(result)
 
@@ -188,7 +212,6 @@ class ClayAnalysis:
         for t_step in range(len(den)):
             sum_den = den[t_step][0]
         avg_den = sum_den/len(den[0])
-        plt.xticks(np.arange(z_points[0], z_points[-1],1 ))
         plt.plot(z_points,avg_den,label=label)
         plt.savefig(label+" density.png")
 
@@ -269,7 +292,7 @@ class ClayAnalysis:
 ###############################Adsorption analysis
 
 
-    def find_adsorbed(self,surface_ids,adsorbants_resnames,r_c=0):#,r_c=10):
+    def find_adsorbed(self,surface_ids,adsorbants_resnames,r_c_upper,r_c_lower=0):#,r_c=10):
 
         """
         params: index of atoms at the surface of clay
@@ -287,11 +310,9 @@ class ClayAnalysis:
             adsorbed = self.universe.select_atoms("")
             
             for p_ad in adsorbants_resnames: #Don't think need to do the around thing every time here?
-                search_strs+= "(resname " + str(p_ad) + " and around "+ str(r_c) + " index "+str(surface_ids[i])+") or "
+                search_strs+= "(resname " + str(p_ad) + " and sphlayer "+ str(r_c_lower) + " "+str(r_c_upper) +" index "+str(surface_ids[i])+") or "
+                #search_strs+= "(resname " + str(p_ad) + " and around "+ str(r_c) + " index "+str(surface_ids[i])+") or "
                 #Might be quicker to do as two lists
-            #print("SEARCH STRING")
-            #print(search_strs)   
-            #print("IDS Adsorbed")
 
             surf_id = self.universe.select_atoms("index "+str(surface_ids[i]))
             adsorbed = self.universe.select_atoms(search_strs[:-3])
@@ -302,9 +323,10 @@ class ClayAnalysis:
                 adsorbed_to_surf[surf_id]= adsorbed
         return adsorbed_to_surf
 
-    def find_adsorption_times(self,lower_surface,upper_surface,adsorbant_resname,r_c=0,start=0,stop=-1):
+    def find_adsorption_times(self,lower_surf_grp, upper_surf_grp, adsorbant_resname, r_c_upper=0,r_c_lower=0,start=0,stop=-1):
         """
-
+        times, stats = cal.find_adsorption_times(lower_surf_grp,upper_surf_grp,resname,r_c_upper,r_c_lower)
+        
         """
         adsorbant_resname = np.unique(adsorbant_resname)
         self.universe.trajectory[0]
@@ -317,12 +339,13 @@ class ClayAnalysis:
         #surf B lb
         #surf A ub
         #surf A lb
-        avg_surf_b = np.average(upper_surface.positions.T[2])
-        avg_surf_a = np.average(lower_surface.positions.T[2])
-        surf_b_ub = avg_surf_b
-        surf_b_lb = avg_surf_b - r_c
-        surf_a_ub = avg_surf_a + r_c
-        surf_a_lb = avg_surf_a
+
+        avg_surf_b = np.average(upper_surf_grp.positions.T[2])
+        avg_surf_a = np.average(lower_surf_grp.positions.T[2])
+        surf_b_ub = avg_surf_b-r_c_lower
+        surf_b_lb = avg_surf_b-r_c_upper 
+        surf_a_ub = avg_surf_a+r_c_upper 
+        surf_a_lb = avg_surf_a+r_c_lower
 
         print(surf_b_ub)
         print(surf_b_lb)
@@ -378,7 +401,7 @@ class ClayAnalysis:
         return times, stats
 
 
-    def find_adsorption_times_c(self,surface_ids,adsorbant_resname,r_c=0,start=0,stop=-1):
+    def find_adsorption_times_c(self,surface_ids,adsorbant_resname,r_c_upper=0,r_c_lower=0,start=0,stop=-1):
         """
             params: atomgroup.indices property of the surface group of interest being adsorbed to
             params: resname of adsorbants to be adsorbed to surface
@@ -428,7 +451,7 @@ class ClayAnalysis:
                         
                         #Get surface atoms and attached ions  
                         # {surface_atom: adsorbant}
-                        currently_ads_dict = self.find_adsorbed(surface_ids,adsorbant_resname,r_c)
+                        currently_ads_dict = self.find_adsorbed(surface_ids,adsorbant_resname,r_c_uppper,r_c_lower)
                         print(currently_ads_dict) 
                         #If a surface ion is no longer sorbed to anything, we remove it from the list of stored ions
                         #TODO Combine into below loop?
@@ -583,15 +606,18 @@ if __name__ == "__main__":
     if mode == "2":
         print("Adsorption times analysis")
         #cal.move_clay_to_origin()
-        r_c = float(sys.argv[4])
-        ads_sel_str = sys.argv[5]
+        r_c_lower = float(sys.argv[4])
+        r_c_upper = float(sys.argv[5])
+        ads_sel_str = sys.argv[6]
         ads = u.atoms.select_atoms(ads_sel_str)
         lower_layers,upper_layers = cal.generate_surface_group("mineral")
         
         lower_surf_grp = cal.combine_atomgroups(lower_layers)
         upper_surf_grp = cal.combine_atomgroups(upper_layers)
-        print(ads.resnames)
-        for resname in np.unique(ads.resnames):
-                
-                print(cal.find_adsorption_times(lower_surf_grp,upper_surf_grp,resname,r_c))
+        with open(str("_".join(np.unique(ads.resnames)))+'summarystats.csvb', 'w', newline='') as csvfile:
+                statWriter = csv.writer(csvfile, delimiter=',')
+                for resname in np.unique(ads.resnames): 
+                        times, stats = cal.find_adsorption_times(lower_surf_grp,upper_surf_grp,resname,r_c_upper,r_c_lower)
+                        statWriter.writerow((resname,np.mean(times),np.std(times)/np.sqrt(len(times))))  
+                        hist(times,NumBins=1000,x_title="Adsorption time\n(number of steps)",y_title="frequency",title=resname)
 
