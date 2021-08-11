@@ -323,9 +323,10 @@ class ClayAnalysis:
                 adsorbed_to_surf[surf_id]= adsorbed
         return adsorbed_to_surf
 
-    def find_adsorption_times(self,surface_ids,adsorbant_resname,r_c_upper=0,r_c_lower=0,start=0,stop=-1):
+    def find_adsorption_times(self,lower_surf_grp, upper_surf_grp, adsorbant_resname, r_c_upper=0,r_c_lower=0,start=0,stop=-1):
         """
-                 
+        times, stats = cal.find_adsorption_times(lower_surf_grp,upper_surf_grp,resname,r_c_upper,r_c_lower)
+        
         """
         adsorbant_resname = np.unique(adsorbant_resname)
         self.universe.trajectory[0]
@@ -339,8 +340,8 @@ class ClayAnalysis:
         #surf A ub
         #surf A lb
 
-        avg_surf_b = np.average(upper_surface.positions.T[2])
-        avg_surf_a = np.average(lower_surface.positions.T[2])
+        avg_surf_b = np.average(upper_surf_grp.positions.T[2])
+        avg_surf_a = np.average(lower_surf_grp.positions.T[2])
         surf_b_ub = avg_surf_b-r_c_lower
         surf_b_lb = avg_surf_b-r_c_upper 
         surf_a_ub = avg_surf_a+r_c_upper 
