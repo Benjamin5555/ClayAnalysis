@@ -37,7 +37,7 @@ def plot_group(grp):
 
 
 def test_adsorption_times_complex():
-    u = mda.Universe("TestFiles/test_sys.pdb","TestFiles/test_sys.pdb")
+    u = mda.Universe("TestFiles/test_sys.top","TestFiles/test_sys.pdb")
     
     cal = ClayAnalysis(u)
     
@@ -132,11 +132,12 @@ def test_adsorption_times_simple():
     surface_atoms_ids = layer.atoms.indices
     test_ads_names = ads.atoms.resnames
     resnames = []
+    surfGrp = u.atoms.select_atoms("")
     for sid in surface_atoms_ids:
-        resnames.append(u.atoms.select_atoms("index "+str(sid)).resnames)
+        surfGrp = surfGrp+u.atoms.select_atoms("index "+str(sid))
     
     t = time.process_time()
-    times, stats= cal.find_adsorption_times(surface_atoms_ids,test_ads_names)
+    times, stats= cal.find_adsorption_times(u.atoms.select_atoms(""),surfGrp,test_ads_names)
     elapsed_time = time.process_time() - t
     print("Adsorption analysis on "+str(u.trajectory.n_frames)+" frames, " +str(u.atoms.n_atoms) + " atom system completed in "+str(elapsed_time))
     

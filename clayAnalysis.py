@@ -20,6 +20,42 @@ from scipy.signal import find_peaks
 import sys
 import csv
 
+def hist(x_data,bins=None,x_title=None,y_title=None,y_labels=None,title=None):
+    """
+        Plot a histogram of some passed data
+
+        Wrapper fo matplotlib histogram plotting
+
+        Args:
+            x_data: Data to be histogramed
+            bins:   (Optional) number of bins to use
+            x_title:(Optional) Label for x_axis of plot
+            y_title:(Optional) Label for y_axis of plot
+            title:  (Optional) Plot title
+        Returns:
+            Histogram values and bins
+        Raises:
+            ZeroDivisionError, AssertionError, & ValueError.
+
+        Examples:
+
+    """
+
+    if(bins==None):
+        bins = len(x_data)/10
+    
+    ns,bins,*_ = plt.hist(x_data,bins, alpha=0.75)    
+    
+    # Set axes, titles and legend
+    plt.title(title)
+    plt.ylabel(y_title)
+    plt.xlabel(x_title)
+    plt.legend()
+    #plt.show()
+    if(title != None):
+        plt.savefig(str(title)+".png")
+    return ns,bins
+
 def plot_group(grp,fig=None,ax=None,label=None):
     """
         Plot positions of atoms in a passed group 
@@ -54,7 +90,7 @@ def plot_group(grp,fig=None,ax=None,label=None):
     upper_z = np.transpose(grp.positions)[2]
     
 
-    ax.scatter(upper_x,upper_y,upper_z,label=labe)
+    ax.scatter(upper_x,upper_y,upper_z,label=label)
     return fig, ax
 
 def get_minima_coords(xs,ys):
@@ -193,8 +229,6 @@ a
         
 
         #TODO: This can probably be simplified into a loop over trajectroy creating a list of u.dimensions objects
-
-        
         v = []
         if (self.universe.trajectory.n_frames>1):
             for ts in self.universe.trajectory[start:stop]:
@@ -231,8 +265,8 @@ a
                 box_dims: Simulation box dimensions for each time step 
                 sel:      Selection string for atoms using MDAnalysis selection string 
                 bins:     (Optional) Number of bins to use, default 100
-                start:     (Optional) starting timstep to analyse, default 0
-                stop:      (Optional) Final timestep to analyse, default -1 (final step)
+                start:    (Optional) starting timstep to analyse, default 0
+                stop:     (Optional) Final timestep to analyse, default -1 (final step)
 
 
             Returns:
@@ -309,7 +343,7 @@ a
 ###End of Mostly stolen from dynden (should import instead)########
 
                         
-    def plot_density_w_time(self,selection,label=None):
+    def plot_density_w_time(self,selection,label=""):
         """
             Creates a matplotlib object of the density profile averaged over time for a selection
 
@@ -330,7 +364,7 @@ a
             sum_den = den[t_step][0]
         avg_den = sum_den/len(den[0])
         plt.plot(z_points,avg_den,label=label)
-        plt.savefig(label+" density.png")
+        plt.savefig(str(label)+" density.png")
 
 ############Determining basal surfaces
 
@@ -338,31 +372,50 @@ a
         """
             Shift entire clay such that its center of mass is at 0 along the z-axis
 
-            Given an atomgroup object, plots the time averaged mass density of these atoms along the
-            z-axis 
+            Is called upon setup of a clay analysis object and so is not really needed to be called 
+            directly
 
-            Args:
-                sel:      Atomgroup selection of atoms to plot the time averaged mass density of 
-                label:    Label for the key of the plot object for this selection
 
             Examples:
 
         """
-
-        self.universe.trajectory.add_transformations(*[self.__shift_clay_to_origin,mda.transformations.wrap(self.universe.atoms)])
+        print("Shifting clay center of mass to be at origin")
+        try:
+            self.universe.trajectory.add_transformations(*[self.__shift_clay_to_origin,mda.transformations.wrap(self.universe.atoms)])
+        except:
+            print("Unable to shift the clay to the origin, perhaps already shifted?") 
 
 
     def generate_surface_group(self,surf_type="waters",box_dims=None):
+        """
+            Creates a list of two atomgroups, which represent the 'top' and 'bottom' basal surfaces 
+
+            Returns two atomgroups, the lower and upper surface respecively.
+            NOTE:Makes use of assumption of 3 layered clay and uses the mass density along z to work
+            out which atoms are at surface. As such if the density profile is significantly 
+            different in terms of number of peaks, this code will identify the incorrect groups as 
+            surface atoms
+
+            Args:
+                params: clay components of interest e.g. waters or minerals (split due to differing mass density profile) 
+                params: (optional) box dimension over time, default uses existing  
+        
+
+            Returns:
+                List of 2 atomgroups of clay components that are at a basal surface, first element 
+                being the lower surface, the second the upper surface
+
+                
+            Raises:
+                ZeroDivisionError, AssertionError, & ValueError.
+
+            Examples:
+
         """ 
-        #params: clay components of interest e.g. surface waters or surfce minerals 
-        #params: (optional) box dimension over time, default uses existing  
-        #returns: atomgroup of filtered clay components that are at a basal surface
 
             
         #TODO: Change over time might be an issue if clay not approx static
-        """
         print("Determining basal surfaces of the clay:") 
-        print("NOTE: This will transform the system such that the clay center of mass is at the origin") 
 
         try:
             self.move_clay_to_origin()
@@ -383,8 +436,10 @@ a
         else:
                 atom_sel = ["resname NON* and name O*"]#["name O[!W]* and name O[!T]*"]
                 den = self.get_partial_density(box_dims," resname NON* and name O*") 
-                peakNum = [6,8]
-        #hist_boxes_to_ midpoints
+                #self.plot_density_w_time(self.universe.atoms.select_atoms("resname NON* and name O*"))
+
+
+                peakNum = [5,7]
 
         #Makes use of initial state only
         z_points = (den[0][1][1:] + den[0][1][:-1]) / 2
@@ -424,16 +479,30 @@ a
 
 
     def find_adsorbed(self,surface_ids,adsorbants_resnames,r_c_upper,r_c_lower=0):#,r_c=10):
-
         """
-        params: index of atoms at the surface of clay
-        params: resnames of possible adsorbants to the surface of clay that are of interest
-        params: Cutoff distance at which a particle is considered to be adsorbed
-        returns: dictionary of atomGroups of adsorbed ions (of type given in adsorbant) to given surface_ids atoms
-    
-        Creates a dictionary of atomgroups, which links a surface atom to a number of adsorbant ions
+            Return a list of surface ions and the things adsorbed to them at the current time step 
 
-        """
+            Creates a dictionary of atomgroups, which links a surface atom to adsorbed ions for the 
+            current time step
+
+
+          
+            Args:
+                surface_ids: index of atoms at the surface of clay
+                adsorbants_resnames: resnames of possible adsorbants to the surface of clay that are of interest
+                r_c_upper: Cutoff distance at which a particle is considered to be adsorbed
+                r_c_lower: Distance along z above which a particle is considered to be adsorbed
+
+            Returns:
+                Dictionary of atomGroups of adsorbed ions (of type given in adsorbant) to given surface_ids atoms
+
+                
+            Raises:
+                ZeroDivisionError, AssertionError, & ValueError.
+
+            Examples:
+
+        """ 
         adsorbed_to_surf = {}
         for i in range(len(surface_ids)):
             
@@ -454,9 +523,10 @@ a
                 adsorbed_to_surf[surf_id]= adsorbed
         return adsorbed_to_surf
 
-    def find_adsorption_times(self,surface_ids,adsorbant_resname,r_c_upper=0,r_c_lower=0,start=0,stop=-1):
+    def find_adsorption_times(self,lower_surf_grp, upper_surf_grp, adsorbant_resname, r_c_upper=0,r_c_lower=0,start=0,stop=-1):
         """
-                 
+        times, stats = cal.find_adsorption_times(lower_surf_grp,upper_surf_grp,resname,r_c_upper,r_c_lower)
+        
         """
         adsorbant_resname = np.unique(adsorbant_resname)
         self.universe.trajectory[0]
@@ -470,67 +540,59 @@ a
         #surf A ub
         #surf A lb
 
-        avg_surf_b = np.average(upper_surface.positions.T[2])
-        avg_surf_a = np.average(lower_surface.positions.T[2])
+        avg_surf_b = np.average(upper_surf_grp.positions.T[2])
+        avg_surf_a = np.average(lower_surf_grp.positions.T[2])
         surf_b_ub = avg_surf_b-r_c_lower
         surf_b_lb = avg_surf_b-r_c_upper 
         surf_a_ub = avg_surf_a+r_c_upper 
         surf_a_lb = avg_surf_a+r_c_lower
-        print(avg_surf_b)
-        print(avg_surf_a)
-        1/0
 
-        with open('stats.csv', 'w', newline='') as csvfile:
+        with open(str(adsorbant_resname[0])+'stats.csv', 'w', newline='') as csvfile:
                 statWriter = csv.writer(csvfile, delimiter=',')
 
                 for ts in self.universe.trajectory:
+                    print(adsorbant_resname[0])
 
                     #counters 
                     c_ad = 0  
                     c_ct = 0 
                     c_ds = 0
                     
-                    search_strs= ""
-                    for ad_rn in adsorbant_resname:
-                        #print(ad_rn)
-                        #self.lower_surface
-                        #self.upper_surface
-                        #current_adsorbed_rn = self.universe.select_atoms("resname " + str(ad_rn))
-                        current_adsorbed_ls = self.universe.select_atoms("resname " + str(ad_rn)+" and prop z > "+str(surf_a_lb)+" and prop z < "+str(surf_a_ub))
-                        current_adsorbed_us = self.universe.select_atoms("resname " + str(ad_rn)+" and prop z > "+str(surf_b_lb)+" and prop z < "+str(surf_b_ub))
-                        
-                        
-                        current_adsorbed = current_adsorbed_ls + current_adsorbed_us 
-                        #self.universe.select_atoms("resname " + str(ad_rn) +\
-                        #" and ((prop z > "+str(surf_a_lb) +" and prop z < "+str(surf_a_ub)+") "\
-                        #+" or (prop z > "+str(surf_b_lb)+" and prop z < "+str(surf_b_ub)+"))")
-                            #Might be quicker to do as two lists
-                        #surf_id = self.universe.select_atoms("index "+str(surface_ids[i]))
-                        hist_ads_grp = self.combine_atomgroups(historic_adsorbed.keys())
-                        desorbed = hist_ads_grp - current_adsorbed
-                        adsorbed = current_adsorbed - hist_ads_grp
-                        cont_ads = current_adsorbed & hist_ads_grp
-                        
-                        for ads_id in adsorbed:
-                            historic_adsorbed[ads_id] = 1 # Add a time adsorbed for
-                            c_ad = c_ad + 1
+                    current_adsorbed_ls = self.universe.select_atoms("resname " + str(adsorbant_resname[0])+" and prop z > "+str(surf_a_lb)+" and prop z < "+str(surf_a_ub))
+                    current_adsorbed_us = self.universe.select_atoms("resname " + str(adsorbant_resname[0])+" and prop z > "+str(surf_b_lb)+" and prop z < "+str(surf_b_ub))
+                    
+                    
+                    current_adsorbed = current_adsorbed_ls + current_adsorbed_us 
+                    #self.universe.select_atoms("resname " + str(ad_rn) +\
+                    #" and ((prop z > "+str(surf_a_lb) +" and prop z < "+str(surf_a_ub)+") "\
+                    #+" or (prop z > "+str(surf_b_lb)+" and prop z < "+str(surf_b_ub)+"))")
+                        #Might be quicker to do as two lists
+                    #surf_id = self.universe.select_atoms("index "+str(surface_ids[i]))
+                    hist_ads_grp = self.combine_atomgroups(historic_adsorbed.keys())
+                    desorbed = hist_ads_grp - current_adsorbed
+                    adsorbed = current_adsorbed - hist_ads_grp
+                    cont_ads = current_adsorbed & hist_ads_grp
+                    
+                    for ads_id in adsorbed:
+                        historic_adsorbed[ads_id] = 1 # Add a time adsorbed for
+                        c_ad = c_ad + 1
     
-                        for ct_id in cont_ads:
-                            #NOTE: If instead you recorded the timestep at which this ion was adsorbed and used the difference to the step it desorbs, you would not require this incrementing step over all ions
-                            historic_adsorbed[ct_id] += 1 
-                            c_ct = c_ct + 1
+                    for ct_id in cont_ads:
+                        #NOTE: If instead you recorded the timestep at which this ion was adsorbed and used the difference to the step it desorbs, you would not require this incrementing step over all ions
+                        historic_adsorbed[ct_id] += 1 
+                        c_ct = c_ct + 1
 
-                        for desorbed_id in desorbed:
-                            times.append(historic_adsorbed.pop(desorbed_id))
-                            c_ds = c_ds + 1
-                        
+                    for desorbed_id in desorbed:
+                        times.append(historic_adsorbed.pop(desorbed_id))
+                        c_ds = c_ds + 1
+                    
                     tot_ads = tot_ads + c_ad
                     stats.append([c_ad,c_ds,c_ct,c_ad+c_ct,tot_ads]) 
                     print("STATS OUTPUT"+str(self.universe.trajectory.ts))
                     print([self.universe.trajectory.time]+stats[-1])
                     statWriter.writerow(stats[-1])
 
-        print(times)
+        np.savetxt(str(adsorbant_resname[0])+"OuputTimes.txt",times)
         return times, stats
 
 
@@ -573,7 +635,7 @@ a
         tot_ads = 0  
         
         print("Step,Num ads, num ds, num continue, num adsorbed tot at ts,total_adsorption events")
-        with open('stats.csv', 'w', newline='') as csvfile:
+        with open(adsorbant_resname+'stats.csv', 'w', newline='') as csvfile:
                 statWriter = csv.writer(csvfile, delimiter=',')
  
                 for ts in self.universe.trajectory:
@@ -740,14 +802,18 @@ if __name__ == "__main__":
     if mode == "2":
         print("Adsorption times analysis")
         #cal.move_clay_to_origin()
-        r_c = float(sys.argv[4])
-        ads_sel_str = sys.argv[5]
+        r_c_lower = float(sys.argv[4])
+        r_c_upper = float(sys.argv[5])
+        ads_sel_str = sys.argv[6]
         ads = u.atoms.select_atoms(ads_sel_str)
         lower_layers,upper_layers = cal.generate_surface_group("mineral")
         
         lower_surf_grp = cal.combine_atomgroups(lower_layers)
         upper_surf_grp = cal.combine_atomgroups(upper_layers)
-        #print(lower_surf_grp)
-        #print(upper_surf_grp)
-        print(cal.find_adsorption_times(lower_surf_grp,upper_surf_grp,ads.resnames,r_c))
+        with open(str("_".join(np.unique(ads.resnames)))+'summarystats.csvb', 'w', newline='') as csvfile:
+                statWriter = csv.writer(csvfile, delimiter=',')
+                for resname in np.unique(ads.resnames): 
+                        times, stats = cal.find_adsorption_times(lower_surf_grp,upper_surf_grp,resname,r_c_upper,r_c_lower)
+                        statWriter.writerow((resname,np.mean(times),np.std(times)/np.sqrt(len(times))))  
+                        hist(times,NumBins=1000,x_title="Adsorption time\n(number of steps)",y_title="frequency",title=resname)
 
