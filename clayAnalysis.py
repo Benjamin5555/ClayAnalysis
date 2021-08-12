@@ -20,7 +20,31 @@ from scipy.signal import find_peaks
 import sys
 import csv
 
-def plot_group(grp,fig=None,ax=None,lable=None):
+def plot_group(grp,fig=None,ax=None,label=None):
+    """
+        Plot positions of atoms in a passed group 
+
+        Creates simple 3D plot of the positions of atoms in the passed group and returns a figure 
+        and axes object on which more groups can be plotted
+
+        Args:
+            grp:    Group to plot positions of
+            fig:    (Optional) Figure to add plots to
+            ax:     (Optional) Axes to add plots to 
+            label:  (Optional) Label to add to plot for passed group
+        Returns:
+            Figure and axes containing the plot of atomgroup positions
+
+        Raises:
+            ZeroDivisionError, AssertionError, & ValueError.
+
+        Examples:
+            >>> atom_group = u.atoms.select_atoms("resname NON*")
+            >>> plot_group(atom_group)
+            >>> plt.show() 
+
+
+    """
     if fig ==None:
         fig = plt.figure()
         ax = Axes3D(fig, zlabel="z")
@@ -29,27 +53,44 @@ def plot_group(grp,fig=None,ax=None,lable=None):
     upper_y = np.transpose(grp.positions)[1]
     upper_z = np.transpose(grp.positions)[2]
     
-        # non_surf = clay.select_atoms("resname "+sel).difference(ag_upper)
-        # print(non_surf)
 
-    ax.scatter(upper_x,upper_y,upper_z,label=lable)
-
+    ax.scatter(upper_x,upper_y,upper_z,label=labe)
+    return fig, ax
 
 def get_minima_coords(xs,ys):
-        """
-        Helper function that finds local minima of ys data and returns coordinates of these
+    """
+        Finds local minima of ys data and returns xs coordinates of these
+
+        Simple minima finder based on minimums or starts of zeroed data
+
+        Args:
+            xs:   X coordinates  
+            ys:   related Y coords to find minimums of
 
 
-        """
-        wrap_len=len(ys)
-        minima_coords = []
-        for i in range(wrap_len):
-            if(ys[i]<ys[(i+1)%wrap_len] and ys[i] < ys[(i-1)%wrap_len]):
-                    minima_coords.append(xs[i])
+        Returns:
+            List of positions in xs that relate to minimums in ys 
 
-            elif(ys[i]==0 and (ys[(i+1)%wrap_len]>0 or  ys[(i-1)%wrap_len]>0)):
-                    minima_coords.append(xs[i])
-        return minima_coords 
+        Raises:
+            ZeroDivisionError, AssertionError, & ValueError.
+
+        Examples:
+            >>> xs = [0,1,2,3,4,5,6,7]
+            >>> ys = [0,0,0,5,4,1,4,5]
+            >>> get_minima_coords(xs,ys)
+            [2,5]
+    
+    """
+    wrap_len=len(ys)
+    minima_coords = []
+    for i in range(wrap_len):
+        if(ys[i]<ys[(i+1)%wrap_len] and ys[i] < ys[(i-1)%wrap_len]):
+                minima_coords.append(xs[i])
+
+        elif(ys[i]==0 and (ys[(i+1)%wrap_len]>0 or  ys[(i-1)%wrap_len]>0)):
+                minima_coords.append(xs[i])
+
+    return minima_coords 
 
 
 
@@ -58,6 +99,28 @@ class ClayAnalysis:
 
 
     def __init__(self,u):
+        """
+            Initalise the clay analysis object, by linking a universe object to it 
+
+            Required to link a universe that is under analysis as well as provide preprocessing to 
+            the system, e.g. by moving the clay to the origin of the simulation box.
+
+            Class provides some functionality to provide information about adsorption to the surface
+            of a clay e.g. determining a list of adsorption times and statistics
+            
+            Args:
+                u:      Universe object
+
+
+            Raises:
+                ZeroDivisionError, AssertionError, & ValueError.
+
+            Examples:
+                >>> u = mda.Universe("topo.tpr","traj.trr")
+                >>> cal = ClayAnalysis.clayAnalysis(u)
+        """
+        #TODO Might be better if this was setup to just extend the universe object 
+
         self.universe = u
         self.box_dims = self.get_box_dim()#start stop etc should be defined
         self.clay = self.universe.select_atoms("resname NON*")
@@ -65,10 +128,23 @@ class ClayAnalysis:
         
     def combine_atomgroups(self,list_of_groups):
         """
-            param: List of atomgroup objects
-            returns: single atomgroup object
-            Given a list of atomgroups, outputs a single atomgroup combining them 
+            Converts a list of atomgroups into a single atomgroup
+            
+            Args:
+                list_of_groups:      Python list made up of atomgroup objects
+a
+            Returns:
+                Single atomgroup containing all atoms in passed list
+
+            Examples:
+                >>> a = u.select_atoms("name AtomA")
+                >>> b = u.select_atoms("name AtomB")
+                >>> cal = ClayAnalysis.clayAnalysis(u)
+                >>> combined_group = cal.combine_atomgroups([a,b])
+                >>> combined_group.names
+                ["AtomA","AtomB"]
         """
+
         
         ag = mda.AtomGroup([],self.universe)#list_of_groups[0]
         for g in list_of_groups:
@@ -76,11 +152,11 @@ class ClayAnalysis:
         return ag
 
 
-    def shift_clay_to_origin(self,ts):
+    def __shift_clay_to_origin(self,ts):
         """
-        Translate all coordinates to have clay centered.
+        Transformation function that moves all coordinates to have clay centered at the origin 
 
-        Might be better to pass clay atom selection? simpler version for now
+        Should be used only with .add_transformation function
         """
         def wrapped(ts):
             ts.positions = ts.positions - self.clay.center_of_mass()
@@ -90,13 +166,35 @@ class ClayAnalysis:
 
 ###Mostly stolen from dynden (should import instead)########
     def get_box_dim(self,timestep=10, start=0,stop=-1):
-        '''
-        params: universe
-        params: timestep
-        return: box dimensions over time
-        See line 365 dynden
-        '''
-        #logger.info("> getting simulation box dimensions...")
+        """
+            Creates a list of simulation box dimensions with time
+
+            Required for use with the partial density function that was taken from DynDen 
+            (https://github.com/punkpony/DynDen.git)
+
+            Args:
+                timestep:  (Optional) Timestep size, default 10     
+                start:     (Optional) starting timstep to analyse, default 0
+                stop:      (Optional) Final timestep to analyse, default -1 (final step)
+
+
+            Returns:
+                Simulation box dimensions over time
+            
+            Raises:
+                ZeroDivisionError, AssertionError, & ValueError.
+
+            Examples:
+                >>> cal = ClayAnalysis.clayAnalysis(u)
+                >>> box_dims_w_time = cal.get_box_dim()
+
+        """
+
+        
+
+        #TODO: This can probably be simplified into a loop over trajectroy creating a list of u.dimensions objects
+
+        
         v = []
         if (self.universe.trajectory.n_frames>1):
             for ts in self.universe.trajectory[start:stop]:
@@ -106,7 +204,6 @@ class ClayAnalysis:
                 dim = np.max(ptmp) - np.min(ptmp)
                 v.append([ts.frame, minpos, maxpos, dim])
 
-                #logger.debug(">> frame %s: z = %5.2f A..."%(ts.frame, dim))
 
         else:
             ptmp = self.universe.atoms.positions[:, 2]
@@ -124,17 +221,30 @@ class ClayAnalysis:
 
                 
     def get_partial_density(self, box_dims, sel, bins=100, start=0, stop=-1,density=False):
-        '''        
-        params: universe
-        params: box_dims measuring box dimensions along z [frame, min, max, dim]
-        params: selection string in form e.g. 'resname NON*'
-        params: number of bins
-        params: start first frame to study
-        params: stop last frame to study
-        returns: density at each timepoint
+        """
+            Creates a list of simulation box dimensions with time
 
-       
-        '''
+            Required for use with the partial density function that was taken from DynDen 
+            (https://github.com/punkpony/DynDen.git)
+
+            Args:
+                box_dims: Simulation box dimensions for each time step 
+                sel:      Selection string for atoms using MDAnalysis selection string 
+                bins:     (Optional) Number of bins to use, default 100
+                start:     (Optional) starting timstep to analyse, default 0
+                stop:      (Optional) Final timestep to analyse, default -1 (final step)
+
+
+            Returns:
+                Density profile along z-axis (assumed normal to clay) for each timepoint
+                in the form of a list of tuples of (histogramValues,binsizes) for each timestep 
+                
+            Raises:
+                ZeroDivisionError, AssertionError, & ValueError.
+
+            Examples:
+
+        """
         print("Calculating partial densitiy for selection " +str(sel))
         mol = self.universe.select_atoms(sel)
         res = [] #density collector
@@ -162,25 +272,59 @@ class ClayAnalysis:
 
 
 
-    def get_resnames_in_model(self):
-        '''
-        params: universe
-        returns: unique residues in the universe
-        '''
-        
-        all_labels = np.unique(self.universe.residues.resnames)
-        for l in all_labels:
-            all_select.append("resname %s"%l)
-        all_labels = np.concatenate((all_labels, ["system"]))
-        all_select = np.concatenate((all_select, ["all"]))
-        return all_select
+    #def get_resnames_in_model(self):
+    #    """
+    #        Simply returns a selection string for all resn
+
+    #        Required for use with the partial density function that was taken from DynDen 
+    #        (https://github.com/punkpony/DynDen.git)
+
+    #        Args:
+    #            box_dims: Simulation box dimensions for each time step 
+    #            sel:      Selection string for atoms using MDAnalysis selection string 
+    #            bins:     (Optional) Number of bins to use, default 100
+    #            start:     (Optional) starting timstep to analyse, default 0
+    #            stop:      (Optional) Final timestep to analyse, default -1 (final step)
+
+
+    #        Returns:
+    #            Density profile along z-axis (assumed normal to clay) for each timepoint
+    #            in the form of a list of tuples of (histogramValues,binsizes) for each timestep 
+    #            
+    #        Raises:
+    #            ZeroDivisionError, AssertionError, & ValueError.
+
+    #        Examples:
+
+    #    """
+    #    
+    #    all_labels = np.unique(self.universe.residues.resnames)
+    #    for l in all_labels:
+    #        all_select.append("resname %s"%l)
+    #    all_labels = np.concatenate((all_labels, ["system"]))
+    #    all_select = np.concatenate((all_select, ["all"]))
+    #    return all_select
 
 
 ###End of Mostly stolen from dynden (should import instead)########
 
                         
     def plot_density_w_time(self,selection,label=None):
-        den = self.get_partial_density(self.box_dims," or ".join(["resname "+s for s in np.unique(selection.resnames)]))
+        """
+            Creates a matplotlib object of the density profile averaged over time for a selection
+
+            Given an atomgroup object, plots the time averaged mass density of these atoms along the
+            z-axis 
+
+            Args:
+                sel:      Atomgroup selection of atoms to plot the time averaged mass density of 
+                label:    Label for the key of the plot object for this selection
+
+            Examples:
+
+        """
+
+        den = self.get_partial_density(self.box_dims," or ".join(["name "+s for s in np.unique(selection.names)]))
         z_points = (den[0][1][1:] + den[0][1][:-1]) / 2
         for t_step in range(len(den)):
             sum_den = den[t_step][0]
@@ -191,7 +335,21 @@ class ClayAnalysis:
 ############Determining basal surfaces
 
     def move_clay_to_origin(self):
-        self.universe.trajectory.add_transformations(*[self.shift_clay_to_origin,mda.transformations.wrap(self.universe.atoms)])
+        """
+            Shift entire clay such that its center of mass is at 0 along the z-axis
+
+            Given an atomgroup object, plots the time averaged mass density of these atoms along the
+            z-axis 
+
+            Args:
+                sel:      Atomgroup selection of atoms to plot the time averaged mass density of 
+                label:    Label for the key of the plot object for this selection
+
+            Examples:
+
+        """
+
+        self.universe.trajectory.add_transformations(*[self.__shift_clay_to_origin,mda.transformations.wrap(self.universe.atoms)])
 
 
     def generate_surface_group(self,surf_type="waters",box_dims=None):
@@ -318,7 +476,9 @@ class ClayAnalysis:
         surf_b_lb = avg_surf_b-r_c_upper 
         surf_a_ub = avg_surf_a+r_c_upper 
         surf_a_lb = avg_surf_a+r_c_lower
-
+        print(avg_surf_b)
+        print(avg_surf_a)
+        1/0
 
         with open('stats.csv', 'w', newline='') as csvfile:
                 statWriter = csv.writer(csvfile, delimiter=',')
@@ -356,6 +516,7 @@ class ClayAnalysis:
                             c_ad = c_ad + 1
     
                         for ct_id in cont_ads:
+                            #NOTE: If instead you recorded the timestep at which this ion was adsorbed and used the difference to the step it desorbs, you would not require this incrementing step over all ions
                             historic_adsorbed[ct_id] += 1 
                             c_ct = c_ct + 1
 
@@ -458,7 +619,8 @@ class ClayAnalysis:
                                 
                             #In both historic and current (continue to be adsorbed)
                             continue_to_adsorb = currently_adsorbed & prev_adsorbed 
-                    
+                            #NOTE: If instead you recorded the timestep at which this ion was adsorbed and used the difference to the step it desorbs, you would not require this incrementing step over all ions
+
                             c_ct = c_ct + self._update_record_w_continuing_adsorbed(continue_to_adsorb,prev_ads_record_at_surf_atm )
                             
                             #Only in historic (desorbed this step) 

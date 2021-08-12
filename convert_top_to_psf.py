@@ -7,4 +7,4 @@ psf_out = sys.argv[2]
 top = pmd.load_file(top_path)
 
 
-top.save(psf_out,vmd=True)
+top.save("psf_out.psf",vmd=True)

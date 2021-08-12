@@ -123,6 +123,7 @@ def test_adsorption_times_simple():
     u = mda.Universe("TestFiles/test_sys.pdb","TestFiles/test_sys.pdb")
     
     cal = ClayAnalysis(u)
+   
     
     
     layer = u.atoms.select_atoms("not resname Ca") #and (name AT* or name ST*)
@@ -197,7 +198,7 @@ def test_adsorption_times_simple():
     assert len(np.where(np.array(times)==3)[0])==4
 
 
-#test_adsorption_times_simple()
+test_adsorption_times_simple()
 test_adsorption_times_complex()
 
 
