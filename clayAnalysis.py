@@ -1,51 +1,50 @@
 """
-TODO change print statments to logging
-TODO allow specification of clay residues at instantiation?
-TODO Get rid of box_dims for timestep.dimensions
-TODO make transformation of clay to origin automatic
-TODO get_partial_density function currently only returns a single partial density (last frame) need
+TODO:
+    *change print statments to logging
+    *allow specification of clay residues at instantiation?
+    *Get rid of box_dims for timestep.dimensions
+    *make transformation of clay to origin automatic
+    *get_partial_density function currently only returns a single partial density (last frame) need
      to change it's return to res and then update rest of code to deal with this change 
 
 """
 import MDAnalysis as mda
-#import nglview as nv
-#from nglview.datafiles import PDB, XTC
 import matplotlib.pyplot as plt
 from mpl_toolkits.mplot3d import Axes3D
 import numpy as np
 from MDAnalysis import transformations
 from MDAnalysis import analysis
 import scipy.stats as stats
-from scipy.signal import find_peaks
+#from scipy.signal import find_peaks
 import sys
 import csv
 
 def hist(x_data,bins=None,x_title=None,y_title=None,y_labels=None,title=None):
     """
-        Plot a histogram of some passed data
+    Plot a histogram of some passed data
 
-        Wrapper fo matplotlib histogram plotting
+    Wrapper fo matplotlib histogram plotting
 
-        Args:
-            x_data: Data to be histogramed
-            bins:   (Optional) number of bins to use
-            x_title:(Optional) Label for x_axis of plot
-            y_title:(Optional) Label for y_axis of plot
-            title:  (Optional) Plot title
-        Returns:
-            Histogram values and bins
-        Raises:
-            ZeroDivisionError, AssertionError, & ValueError.
+    Args:
+        x_data: Data to be histogramed
+        bins:   (Optional) number of bins to use
+        x_title:(Optional) Label for x_axis of plot
+        y_title:(Optional) Label for y_axis of plot
+        title:  (Optional) Plot title
+    Returns:
+        Histogram values and bins
+    Raises:
+        ZeroDivisionError, AssertionError, & ValueError.
 
-        Examples:
+    Examples:
 
     """
 
     if(bins==None):
         bins = len(x_data)/10
-    
+
     ns,bins,*_ = plt.hist(x_data,bins, alpha=0.75)    
-    
+
     # Set axes, titles and legend
     plt.title(title)
     plt.ylabel(y_title)
@@ -58,28 +57,26 @@ def hist(x_data,bins=None,x_title=None,y_title=None,y_labels=None,title=None):
 
 def plot_group(grp,fig=None,ax=None,label=None):
     """
-        Plot positions of atoms in a passed group 
+    Plot positions of atoms in a passed group
 
-        Creates simple 3D plot of the positions of atoms in the passed group and returns a figure 
-        and axes object on which more groups can be plotted
+    Creates simple 3D plot of the positions of atoms in the passed group and returns a figure 
+    and axes object on which more groups can be plotted
 
-        Args:
-            grp:    Group to plot positions of
-            fig:    (Optional) Figure to add plots to
-            ax:     (Optional) Axes to add plots to 
-            label:  (Optional) Label to add to plot for passed group
-        Returns:
-            Figure and axes containing the plot of atomgroup positions
+    Args:
+        grp:    Group to plot positions of
+        fig:    (Optional) Figure to add plots to
+        ax:     (Optional) Axes to add plots to
+        label:  (Optional) Label to add to plot for passed group
+    Returns:
+        Figure and axes containing the plot of atomgroup positions
 
-        Raises:
-            ZeroDivisionError, AssertionError, & ValueError.
+    Raises:
+        ZeroDivisionError, AssertionError, & ValueError.
 
-        Examples:
-            >>> atom_group = u.atoms.select_atoms("resname NON*")
-            >>> plot_group(atom_group)
-            >>> plt.show() 
-
-
+    Examples:
+        >>> atom_group = u.atoms.select_atoms("resname NON*")
+        >>> plot_group(atom_group)
+        >>> plt.show()
     """
     if fig ==None:
         fig = plt.figure()
@@ -88,33 +85,32 @@ def plot_group(grp,fig=None,ax=None,label=None):
     upper_x = np.transpose(grp.positions)[0]
     upper_y = np.transpose(grp.positions)[1]
     upper_z = np.transpose(grp.positions)[2]
-    
 
     ax.scatter(upper_x,upper_y,upper_z,label=label)
     return fig, ax
 
 def get_minima_coords(xs,ys):
     """
-        Finds local minima of ys data and returns xs coordinates of these
+    Finds local minima of ys data and returns xs coordinates of these
 
-        Simple minima finder based on minimums or starts of zeroed data
+    Simple minima finder based on minimums or starts of zeroed data
 
-        Args:
-            xs:   X coordinates  
-            ys:   related Y coords to find minimums of
+    Args:
+        xs:   X coordinates
+        ys:   related Y coords to find minimums of
 
 
-        Returns:
-            List of positions in xs that relate to minimums in ys 
+    Returns:
+        List of positions in xs that relate to minimums in ys 
 
-        Raises:
-            ZeroDivisionError, AssertionError, & ValueError.
+    Raises:
+        ZeroDivisionError, AssertionError, & ValueError.
 
-        Examples:
-            >>> xs = [0,1,2,3,4,5,6,7]
-            >>> ys = [0,0,0,5,4,1,4,5]
-            >>> get_minima_coords(xs,ys)
-            [2,5]
+    Examples:
+        >>> xs = [0,1,2,3,4,5,6,7]
+        >>> ys = [0,0,0,5,4,1,4,5]
+        >>> get_minima_coords(xs,ys)
+        [2,5]
     
     """
     wrap_len=len(ys)
@@ -136,24 +132,23 @@ class ClayAnalysis:
 
     def __init__(self,u):
         """
-            Initalise the clay analysis object, by linking a universe object to it 
+        Initalise the clay analysis object, by linking a universe object to it 
 
-            Required to link a universe that is under analysis as well as provide preprocessing to 
-            the system, e.g. by moving the clay to the origin of the simulation box.
+        Required to link a universe that is under analysis as well as provide preprocessing to 
+        the system, e.g. by moving the clay to the origin of the simulation box.
 
-            Class provides some functionality to provide information about adsorption to the surface
-            of a clay e.g. determining a list of adsorption times and statistics
-            
-            Args:
-                u:      Universe object
+        Class provides some functionality to provide information about adsorption to the surface
+        of a clay e.g. determining a list of adsorption times and statistics
+        
+        Args:
+            u:      Universe object
 
+        Raises:
+            ZeroDivisionError, AssertionError, & ValueError.
 
-            Raises:
-                ZeroDivisionError, AssertionError, & ValueError.
-
-            Examples:
-                >>> u = mda.Universe("topo.tpr","traj.trr")
-                >>> cal = ClayAnalysis.clayAnalysis(u)
+        Examples:
+            >>> u = mda.Universe("topo.tpr","traj.trr")
+            >>> cal = ClayAnalysis.clayAnalysis(u)
         """
         #TODO Might be better if this was setup to just extend the universe object 
 
@@ -164,21 +159,21 @@ class ClayAnalysis:
         
     def combine_atomgroups(self,list_of_groups):
         """
-            Converts a list of atomgroups into a single atomgroup
-            
-            Args:
-                list_of_groups:      Python list made up of atomgroup objects
-a
-            Returns:
-                Single atomgroup containing all atoms in passed list
+        Converts a list of atomgroups into a single atomgroup
+        
+        Args:
+            list_of_groups:      Python list made up of atomgroup objects
 
-            Examples:
-                >>> a = u.select_atoms("name AtomA")
-                >>> b = u.select_atoms("name AtomB")
-                >>> cal = ClayAnalysis.clayAnalysis(u)
-                >>> combined_group = cal.combine_atomgroups([a,b])
-                >>> combined_group.names
-                ["AtomA","AtomB"]
+        Returns:
+            Single atomgroup containing all atoms in passed list
+
+        Examples:
+            >>> a = u.select_atoms("name AtomA")
+            >>> b = u.select_atoms("name AtomB")
+            >>> cal = ClayAnalysis.clayAnalysis(u)
+            >>> combined_group = cal.combine_atomgroups([a,b])
+            >>> combined_group.names
+            ["AtomA","AtomB"]
         """
 
         
@@ -203,26 +198,26 @@ a
 ###Mostly stolen from dynden (should import instead)########
     def get_box_dim(self,timestep=10, start=0,stop=-1):
         """
-            Creates a list of simulation box dimensions with time
+        Creates a list of simulation box dimensions with time
 
-            Required for use with the partial density function that was taken from DynDen 
-            (https://github.com/punkpony/DynDen.git)
+        Required for use with the partial density function that was taken from DynDen 
+        (https://github.com/punkpony/DynDen.git)
 
-            Args:
-                timestep:  (Optional) Timestep size, default 10     
-                start:     (Optional) starting timstep to analyse, default 0
-                stop:      (Optional) Final timestep to analyse, default -1 (final step)
+        Args:
+            timestep:  (Optional) Timestep size, default 10     
+            start:     (Optional) starting timstep to analyse, default 0
+            stop:      (Optional) Final timestep to analyse, default -1 (final step)
 
 
-            Returns:
-                Simulation box dimensions over time
-            
-            Raises:
-                ZeroDivisionError, AssertionError, & ValueError.
+        Returns:
+            Simulation box dimensions over time
+        
+        Raises:
+            ZeroDivisionError, AssertionError, & ValueError.
 
-            Examples:
-                >>> cal = ClayAnalysis.clayAnalysis(u)
-                >>> box_dims_w_time = cal.get_box_dim()
+        Examples:
+            >>> cal = ClayAnalysis.clayAnalysis(u)
+            >>> box_dims_w_time = cal.get_box_dim()
 
         """
 
@@ -341,7 +336,6 @@ a
 
 
 ###End of Mostly stolen from dynden (should import instead)########
-
                         
     def plot_density_w_time(self,selection,label=""):
         """
@@ -397,8 +391,10 @@ a
             surface atoms
 
             Args:
-                params: clay components of interest e.g. waters or minerals (split due to differing mass density profile) 
-                params: (optional) box dimension over time, default uses existing  
+                surf_type: (optional) clay components of interest options include waters or mineral,
+                            default waters (split due to differing mass density profile) 
+
+                box_dims: (optional) box dimension over time, default uses existing  
         
 
             Returns:
@@ -480,21 +476,26 @@ a
 
     def find_adsorbed(self,surface_ids,adsorbants_resnames,r_c_upper,r_c_lower=0):#,r_c=10):
         """
-            Return a list of surface ions and the things adsorbed to them at the current time step 
+            Return a dictionary of surface ions and the things adsorbed to them at the current step
 
-            Creates a dictionary of atomgroups, which links a surface atom to adsorbed ions for the 
-            current time step
+            By looping over every surface atoms, generates a dictionary of surface atoms (atomgroup 
+            with single surface atoms within) with something adsorbed to them to each cation that is
+            adsorbed using the radial disance between the surface atom and cation as a cutoff of 
+            adsorbed versus non adsorbed
 
 
           
             Args:
                 surface_ids: index of atoms at the surface of clay
-                adsorbants_resnames: resnames of possible adsorbants to the surface of clay that are of interest
+                adsorbants_resnames: resnames of possible adsorbants to the surface of clay that are
+                 of interest
                 r_c_upper: Cutoff distance at which a particle is considered to be adsorbed
                 r_c_lower: Distance along z above which a particle is considered to be adsorbed
 
             Returns:
-                Dictionary of atomGroups of adsorbed ions (of type given in adsorbant) to given surface_ids atoms
+                Dictionary of atomGroups of adsorbed ions (of type given in adsorbant) to given 
+                surface atoms
+                i.e. {Surface_atom (Atomgroup containing 1 atom): [Adsorbed_cations (Atomgroup)]} 
 
                 
             Raises:
@@ -523,11 +524,68 @@ a
                 adsorbed_to_surf[surf_id]= adsorbed
         return adsorbed_to_surf
 
-    def find_adsorption_times(self,lower_surf_grp, upper_surf_grp, adsorbant_resname, r_c_upper=0,r_c_lower=0,start=0,stop=-1):
+    def find_adsorption_times(self,lower_surf_grp, upper_surf_grp, adsorbant_resname, r_c_upper=0, r_c_lower=0, start=0, stop=-1):
         """
-        times, stats = cal.find_adsorption_times(lower_surf_grp,upper_surf_grp,resname,r_c_upper,r_c_lower)
-        
-        """
+            Determines the times overwhich an ions are adsorbed to a surface by looking at z position
+
+            Simply uses z position of ions relative to the surface of the clay as a definition for 
+            adsorption. i.e. if an ion has position along the z-axis a distance between r_c_lower 
+            and r_c_upper to the average position of surface clay atoms
+
+            ##REPLACE BELOW WITH AN IMAGE 
+            upper surface
+            -------------
+            r_c_lower
+            -------------
+            adsorbed ions
+            -------------
+            r_c_upper
+            -------------
+            Bulk Solution
+            -------------
+            r_c_upper
+            -------------
+            adsorbed ions
+            -------------
+            r_c_lower
+            -------------
+            lower surface
+            
+            NOTE: If an ion is 'already adsorbed' at the start of the simulation it will be 
+                  considered as though it adsorbs at starting time step. As such ions should start 
+                  off far from the clay surface (achiveable via the reinsert_ions.py script in 
+                  https://github.com/Benjamin5555/Clay-Project)
+            NOTE: If an ion is still adsorbed at the end of the simulation its time will not be 
+                  output 
+
+            Args:
+                lower_surf_grp: 'bottom' clay surface atomgroup
+                upper_surf_grp: 'top' clay surface atomgroup
+                adsorbants_resnames: resnames of possible adsorbants to the surface of clay that are
+                                     of interest
+                r_c_upper: Cutoff distance at which a particle is considered to be adsorbed
+                r_c_lower: Distance along z above which a particle is considered to be adsorbed
+                start:     (Optional) starting timstep to analyse, default 0
+                stop:      (Optional) Final timestep to analyse, default -1 (final step)
+
+            Returns:
+                Statistics on adsorption and a list of adsorption times collected over the 
+                trajectory for atoms that are within the distance boundary  
+                
+                Statistics have form Step,Number of  adsorption events, num desorption events, 
+                number continuing to be adsorbed, number adsorbed total at ts, total_adsorption 
+                events over whole trajectory
+ 
+            Raises:
+                ZeroDivisionError, AssertionError, & ValueError.
+
+            Examples:
+                >>> cal = clayAnalysis.ClayAnalysis(u)
+                >>> surfaces = cal.generate_surface_group("mineral")
+                >>> lower_surf_grp = cal.combine_atomgroups(surfaces[0])
+                >>> upper_surf_grp = cal.combine_atomgroups(surfaces[1])
+                >>> times,stats = cal.find_adsorbant_times(lower_surf_grp,upper_surf_grp,"Cs",4.8,0)
+        """ 
         adsorbant_resname = np.unique(adsorbant_resname)
         self.universe.trajectory[0]
         current_adsorbed = self.universe.select_atoms("")
@@ -535,10 +593,6 @@ a
         times = [] 
         stats = []
         tot_ads = 0
-        #surf B ub
-        #surf B lb
-        #surf A ub
-        #surf A lb
 
         avg_surf_b = np.average(upper_surf_grp.positions.T[2])
         avg_surf_a = np.average(lower_surf_grp.positions.T[2])
@@ -563,11 +617,6 @@ a
                     
                     
                     current_adsorbed = current_adsorbed_ls + current_adsorbed_us 
-                    #self.universe.select_atoms("resname " + str(ad_rn) +\
-                    #" and ((prop z > "+str(surf_a_lb) +" and prop z < "+str(surf_a_ub)+") "\
-                    #+" or (prop z > "+str(surf_b_lb)+" and prop z < "+str(surf_b_ub)+"))")
-                        #Might be quicker to do as two lists
-                    #surf_id = self.universe.select_atoms("index "+str(surface_ids[i]))
                     hist_ads_grp = self.combine_atomgroups(historic_adsorbed.keys())
                     desorbed = hist_ads_grp - current_adsorbed
                     adsorbed = current_adsorbed - hist_ads_grp
@@ -598,27 +647,54 @@ a
 
     def find_adsorption_times_c(self,surface_ids,adsorbant_resname,r_c_upper=0,r_c_lower=0,start=0,stop=-1):
         """
-            params: atomgroup.indices property of the surface group of interest being adsorbed to
-            params: resname of adsorbants to be adsorbed to surface
-            params: Cutoff distance below which defines an adsorption event
-            params: start timestep to analyse 
-            params: stop timestep to analyse 
-            
-            returns: 
-                list of stats at each time step on [# adsorption events @ts, # desorption events @ts,
-                                                    # continuing to be adsorbed from last ts,
-                                                    total adsorbed to surface @ ts,
-                                                    total # adsorption events up to this ts]
-                and 
-                list of times ions stayed adsorbed to the surface 
-            
-            A more complex version of the adsorption times function in that it tracks which atoms at
-            the surface are bonded to those in a certian range hence giving a bit more information
+            Determines the times overwhich ions are adsorbed to a surface by looking at radial 
+            distance of all surface atoms
 
+            Uses a similar process to find_adsorpion_times in terms of looking at changes in groups 
+            but is able to keep track of specific surface atom to specific ion relationships and so
+            could be built upon to gain furher info on specific adsorption events, should it ever be 
+            needed
+
+
+                       
             NOTE: If an ion is 'already adsorbed' at the start of the simulation it will be 
-                  considered as though it adsorbs at starting time step 
+                  considered as though it adsorbs at starting time step. As such ions should start 
+                  off far from the clay surface (achiveable via the reinsert_ions.py script in 
+                  https://github.com/Benjamin5555/Clay-Project)
             NOTE: If an ion is still adsorbed at the end of the simulation its time will not be 
                   output 
+
+            Args:
+                surface_ids: atomgroup.indices property of the surface group of interest to look at 
+                             adsorbance to 
+                lower_surf_grp: 'bottom' clay surface atomgroup
+                upper_surf_grp: 'top' clay surface atomgroup
+                adsorbants_resnames: resnames of possible adsorbants to the surface of clay that are
+                                     of interest
+                r_c_upper: Cutoff distance at which a particle is considered to be adsorbed
+                r_c_lower: Distance along z above which a particle is considered to be adsorbed
+                start:     (Optional) starting timstep to analyse, default 0
+                stop:      (Optional) Final timestep to analyse, default -1 (final step)
+
+            Returns:
+                Statistics on adsorption and a list of adsorption times collected over the 
+                trajectory for atoms that are within the distance boundary  
+                
+                Statistics have form Step,Number of  adsorption events, num desorption events, 
+                number continuing to be adsorbed, number adsorbed total at ts, total_adsorption 
+                events over whole trajectory
+ 
+            Raises:
+                ZeroDivisionError, AssertionError, & ValueError.
+
+            Examples:
+                >>> cal = clayAnalysis.ClayAnalysis(u)
+                >>> surfaces = cal.generate_surface_group("mineral")
+                >>> lower_surf_grp = cal.combine_atomgroups(surfaces[0])
+                >>> upper_surf_grp = cal.combine_atomgroups(surfaces[1])
+                >>> times,stats = cal.find_adsorbant_times(lower_surf_grp,upper_surf_grp,"Cs",4.8,0)
+                        
+
         """
         #TODO: Allow different ions to have different adsorption cutoff distances
         #TODO: Case where ions adsorbed in first time step 
@@ -646,7 +722,7 @@ a
                         
                         #Get surface atoms and attached ions  
                         # {surface_atom: adsorbant}
-                        currently_ads_dict = self.find_adsorbed(surface_ids,adsorbant_resname,r_c_uppper,r_c_lower)
+                        currently_ads_dict = self.find_adsorbed(surface_ids,adsorbant_resname,r_c_upper,r_c_lower)
                         print(currently_ads_dict) 
                         #If a surface ion is no longer sorbed to anything, we remove it from the list of stored ions
                         #TODO Combine into below loop?
@@ -753,6 +829,7 @@ a
             params: (optional) bool smoothed 
             
             Simple charge surface plotting via a 2d histogram
+            NOTE: Not useful should just use VMD instead
         """
 
         Xs = selection.atoms.positions[:,0]
@@ -815,5 +892,5 @@ if __name__ == "__main__":
                 for resname in np.unique(ads.resnames): 
                         times, stats = cal.find_adsorption_times(lower_surf_grp,upper_surf_grp,resname,r_c_upper,r_c_lower)
                         statWriter.writerow((resname,np.mean(times),np.std(times)/np.sqrt(len(times))))  
-                        hist(times,NumBins=1000,x_title="Adsorption time\n(number of steps)",y_title="frequency",title=resname)
+                        hist(times,x_title="Adsorption time\n(number of steps)",y_title="frequency",title=resname)
 

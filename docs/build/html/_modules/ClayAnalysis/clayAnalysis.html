@@ -1,0 +1,981 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClayAnalysis.clayAnalysis &#8212; ClayAnalysis  documentation</title>
+    <link rel="stylesheet" type="text/css" href="../../_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="../../_static/alabaster.css" />
+    <script data-url_root="../../" id="documentation_options" src="../../_static/documentation_options.js"></script>
+    <script src="../../_static/jquery.js"></script>
+    <script src="../../_static/underscore.js"></script>
+    <script src="../../_static/doctools.js"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" />
+   
+  <link rel="stylesheet" href="../../_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for ClayAnalysis.clayAnalysis</h1><div class="highlight"><pre>
+<span></span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">TODO:</span>
+<span class="sd">    *change print statments to logging</span>
+<span class="sd">    *allow specification of clay residues at instantiation?</span>
+<span class="sd">    *Get rid of box_dims for timestep.dimensions</span>
+<span class="sd">    *make transformation of clay to origin automatic</span>
+<span class="sd">    *get_partial_density function currently only returns a single partial density (last frame) need</span>
+<span class="sd">     to change it&#39;s return to res and then update rest of code to deal with this change </span>
+
+<span class="sd">&quot;&quot;&quot;</span>
+<span class="kn">import</span> <span class="nn">MDAnalysis</span> <span class="k">as</span> <span class="nn">mda</span>
+<span class="kn">import</span> <span class="nn">matplotlib.pyplot</span> <span class="k">as</span> <span class="nn">plt</span>
+<span class="kn">from</span> <span class="nn">mpl_toolkits.mplot3d</span> <span class="kn">import</span> <span class="n">Axes3D</span>
+<span class="kn">import</span> <span class="nn">numpy</span> <span class="k">as</span> <span class="nn">np</span>
+<span class="kn">from</span> <span class="nn">MDAnalysis</span> <span class="kn">import</span> <span class="n">transformations</span>
+<span class="kn">from</span> <span class="nn">MDAnalysis</span> <span class="kn">import</span> <span class="n">analysis</span>
+<span class="kn">import</span> <span class="nn">scipy.stats</span> <span class="k">as</span> <span class="nn">stats</span>
+<span class="c1">#from scipy.signal import find_peaks</span>
+<span class="kn">import</span> <span class="nn">sys</span>
+<span class="kn">import</span> <span class="nn">csv</span>
+
+<div class="viewcode-block" id="hist"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.hist">[docs]</a><span class="k">def</span> <span class="nf">hist</span><span class="p">(</span><span class="n">x_data</span><span class="p">,</span><span class="n">bins</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">x_title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">y_title</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">y_labels</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">title</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plot a histogram of some passed data</span>
+
+<span class="sd">    Wrapper fo matplotlib histogram plotting</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        x_data: Data to be histogramed</span>
+<span class="sd">        bins:   (Optional) number of bins to use</span>
+<span class="sd">        x_title:(Optional) Label for x_axis of plot</span>
+<span class="sd">        y_title:(Optional) Label for y_axis of plot</span>
+<span class="sd">        title:  (Optional) Plot title</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Histogram values and bins</span>
+<span class="sd">    Raises:</span>
+<span class="sd">        ZeroDivisionError, AssertionError, &amp; ValueError.</span>
+
+<span class="sd">    Examples:</span>
+
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="k">if</span><span class="p">(</span><span class="n">bins</span><span class="o">==</span><span class="kc">None</span><span class="p">):</span>
+        <span class="n">bins</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">x_data</span><span class="p">)</span><span class="o">/</span><span class="mi">10</span>
+
+    <span class="n">ns</span><span class="p">,</span><span class="n">bins</span><span class="p">,</span><span class="o">*</span><span class="n">_</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">hist</span><span class="p">(</span><span class="n">x_data</span><span class="p">,</span><span class="n">bins</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.75</span><span class="p">)</span>    
+
+    <span class="c1"># Set axes, titles and legend</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">title</span><span class="p">(</span><span class="n">title</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">ylabel</span><span class="p">(</span><span class="n">y_title</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">xlabel</span><span class="p">(</span><span class="n">x_title</span><span class="p">)</span>
+    <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+    <span class="c1">#plt.show()</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">title</span> <span class="o">!=</span> <span class="kc">None</span><span class="p">):</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">title</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot;.png&quot;</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">ns</span><span class="p">,</span><span class="n">bins</span></div>
+
+<div class="viewcode-block" id="plot_group"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.plot_group">[docs]</a><span class="k">def</span> <span class="nf">plot_group</span><span class="p">(</span><span class="n">grp</span><span class="p">,</span><span class="n">fig</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">ax</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Plot positions of atoms in a passed group</span>
+
+<span class="sd">    Creates simple 3D plot of the positions of atoms in the passed group and returns a figure </span>
+<span class="sd">    and axes object on which more groups can be plotted</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        grp:    Group to plot positions of</span>
+<span class="sd">        fig:    (Optional) Figure to add plots to</span>
+<span class="sd">        ax:     (Optional) Axes to add plots to</span>
+<span class="sd">        label:  (Optional) Label to add to plot for passed group</span>
+<span class="sd">    Returns:</span>
+<span class="sd">        Figure and axes containing the plot of atomgroup positions</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ZeroDivisionError, AssertionError, &amp; ValueError.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; atom_group = u.atoms.select_atoms(&quot;resname NON*&quot;)</span>
+<span class="sd">        &gt;&gt;&gt; plot_group(atom_group)</span>
+<span class="sd">        &gt;&gt;&gt; plt.show()</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="k">if</span> <span class="n">fig</span> <span class="o">==</span><span class="kc">None</span><span class="p">:</span>
+        <span class="n">fig</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">figure</span><span class="p">()</span>
+        <span class="n">ax</span> <span class="o">=</span> <span class="n">Axes3D</span><span class="p">(</span><span class="n">fig</span><span class="p">,</span> <span class="n">zlabel</span><span class="o">=</span><span class="s2">&quot;z&quot;</span><span class="p">)</span>
+
+    <span class="n">upper_x</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">grp</span><span class="o">.</span><span class="n">positions</span><span class="p">)[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="n">upper_y</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">grp</span><span class="o">.</span><span class="n">positions</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span>
+    <span class="n">upper_z</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">grp</span><span class="o">.</span><span class="n">positions</span><span class="p">)[</span><span class="mi">2</span><span class="p">]</span>
+
+    <span class="n">ax</span><span class="o">.</span><span class="n">scatter</span><span class="p">(</span><span class="n">upper_x</span><span class="p">,</span><span class="n">upper_y</span><span class="p">,</span><span class="n">upper_z</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span></div>
+
+<div class="viewcode-block" id="get_minima_coords"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.get_minima_coords">[docs]</a><span class="k">def</span> <span class="nf">get_minima_coords</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span><span class="n">ys</span><span class="p">):</span>
+    <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Finds local minima of ys data and returns xs coordinates of these</span>
+
+<span class="sd">    Simple minima finder based on minimums or starts of zeroed data</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        xs:   X coordinates</span>
+<span class="sd">        ys:   related Y coords to find minimums of</span>
+
+
+<span class="sd">    Returns:</span>
+<span class="sd">        List of positions in xs that relate to minimums in ys </span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        ZeroDivisionError, AssertionError, &amp; ValueError.</span>
+
+<span class="sd">    Examples:</span>
+<span class="sd">        &gt;&gt;&gt; xs = [0,1,2,3,4,5,6,7]</span>
+<span class="sd">        &gt;&gt;&gt; ys = [0,0,0,5,4,1,4,5]</span>
+<span class="sd">        &gt;&gt;&gt; get_minima_coords(xs,ys)</span>
+<span class="sd">        [2,5]</span>
+<span class="sd">    </span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">wrap_len</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+    <span class="n">minima_coords</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">wrap_len</span><span class="p">):</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">&lt;</span><span class="n">ys</span><span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="n">wrap_len</span><span class="p">]</span> <span class="ow">and</span> <span class="n">ys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span> <span class="o">&lt;</span> <span class="n">ys</span><span class="p">[(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="n">wrap_len</span><span class="p">]):</span>
+                <span class="n">minima_coords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+        <span class="k">elif</span><span class="p">(</span><span class="n">ys</span><span class="p">[</span><span class="n">i</span><span class="p">]</span><span class="o">==</span><span class="mi">0</span> <span class="ow">and</span> <span class="p">(</span><span class="n">ys</span><span class="p">[(</span><span class="n">i</span><span class="o">+</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="n">wrap_len</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">0</span> <span class="ow">or</span>  <span class="n">ys</span><span class="p">[(</span><span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">%</span><span class="n">wrap_len</span><span class="p">]</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">)):</span>
+                <span class="n">minima_coords</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">xs</span><span class="p">[</span><span class="n">i</span><span class="p">])</span>
+
+    <span class="k">return</span> <span class="n">minima_coords</span> </div>
+
+
+
+
+<div class="viewcode-block" id="ClayAnalysis"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.ClayAnalysis">[docs]</a><span class="k">class</span> <span class="nc">ClayAnalysis</span><span class="p">:</span>
+
+
+    <span class="k">def</span> <span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">u</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Initalise the clay analysis object, by linking a universe object to it </span>
+
+<span class="sd">        Required to link a universe that is under analysis as well as provide preprocessing to </span>
+<span class="sd">        the system, e.g. by moving the clay to the origin of the simulation box.</span>
+
+<span class="sd">        Class provides some functionality to provide information about adsorption to the surface</span>
+<span class="sd">        of a clay e.g. determining a list of adsorption times and statistics</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            u:      Universe object</span>
+
+<span class="sd">        Raises:</span>
+<span class="sd">            ZeroDivisionError, AssertionError, &amp; ValueError.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; u = mda.Universe(&quot;topo.tpr&quot;,&quot;traj.trr&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; cal = ClayAnalysis.clayAnalysis(u)</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#TODO Might be better if this was setup to just extend the universe object </span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">universe</span> <span class="o">=</span> <span class="n">u</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">box_dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_box_dim</span><span class="p">()</span><span class="c1">#start stop etc should be defined</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">clay</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;resname NON*&quot;</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">move_clay_to_origin</span><span class="p">()</span>
+        
+<div class="viewcode-block" id="ClayAnalysis.combine_atomgroups"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.ClayAnalysis.combine_atomgroups">[docs]</a>    <span class="k">def</span> <span class="nf">combine_atomgroups</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">list_of_groups</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Converts a list of atomgroups into a single atomgroup</span>
+<span class="sd">        </span>
+<span class="sd">        Args:</span>
+<span class="sd">            list_of_groups:      Python list made up of atomgroup objects</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Single atomgroup containing all atoms in passed list</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; a = u.select_atoms(&quot;name AtomA&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; b = u.select_atoms(&quot;name AtomB&quot;)</span>
+<span class="sd">            &gt;&gt;&gt; cal = ClayAnalysis.clayAnalysis(u)</span>
+<span class="sd">            &gt;&gt;&gt; combined_group = cal.combine_atomgroups([a,b])</span>
+<span class="sd">            &gt;&gt;&gt; combined_group.names</span>
+<span class="sd">            [&quot;AtomA&quot;,&quot;AtomB&quot;]</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        
+        <span class="n">ag</span> <span class="o">=</span> <span class="n">mda</span><span class="o">.</span><span class="n">AtomGroup</span><span class="p">([],</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="p">)</span><span class="c1">#list_of_groups[0]</span>
+        <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="n">list_of_groups</span><span class="p">:</span>
+            <span class="n">ag</span> <span class="o">=</span> <span class="n">ag</span> <span class="o">+</span> <span class="n">g</span>
+        <span class="k">return</span> <span class="n">ag</span></div>
+
+
+    <span class="k">def</span> <span class="nf">__shift_clay_to_origin</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">ts</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Transformation function that moves all coordinates to have clay centered at the origin </span>
+
+<span class="sd">        Should be used only with .add_transformation function</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">def</span> <span class="nf">wrapped</span><span class="p">(</span><span class="n">ts</span><span class="p">):</span>
+            <span class="n">ts</span><span class="o">.</span><span class="n">positions</span> <span class="o">=</span> <span class="n">ts</span><span class="o">.</span><span class="n">positions</span> <span class="o">-</span> <span class="bp">self</span><span class="o">.</span><span class="n">clay</span><span class="o">.</span><span class="n">center_of_mass</span><span class="p">()</span>
+            <span class="k">return</span> <span class="n">ts</span>
+        <span class="k">return</span> <span class="n">wrapped</span><span class="p">(</span><span class="n">ts</span><span class="p">)</span>
+
+
+<span class="c1">###Mostly stolen from dynden (should import instead)########</span>
+<div class="viewcode-block" id="ClayAnalysis.get_box_dim"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.ClayAnalysis.get_box_dim">[docs]</a>    <span class="k">def</span> <span class="nf">get_box_dim</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">timestep</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">stop</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Creates a list of simulation box dimensions with time</span>
+
+<span class="sd">        Required for use with the partial density function that was taken from DynDen </span>
+<span class="sd">        (https://github.com/punkpony/DynDen.git)</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            timestep:  (Optional) Timestep size, default 10     </span>
+<span class="sd">            start:     (Optional) starting timstep to analyse, default 0</span>
+<span class="sd">            stop:      (Optional) Final timestep to analyse, default -1 (final step)</span>
+
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Simulation box dimensions over time</span>
+<span class="sd">        </span>
+<span class="sd">        Raises:</span>
+<span class="sd">            ZeroDivisionError, AssertionError, &amp; ValueError.</span>
+
+<span class="sd">        Examples:</span>
+<span class="sd">            &gt;&gt;&gt; cal = ClayAnalysis.clayAnalysis(u)</span>
+<span class="sd">            &gt;&gt;&gt; box_dims_w_time = cal.get_box_dim()</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        
+
+        <span class="c1">#TODO: This can probably be simplified into a loop over trajectroy creating a list of u.dimensions objects</span>
+        <span class="n">v</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">if</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="o">.</span><span class="n">n_frames</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]:</span>
+                <span class="n">ptmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
+                <span class="n">minpos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">ptmp</span><span class="p">)</span>
+                <span class="n">maxpos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">ptmp</span><span class="p">)</span>
+                <span class="n">dim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">ptmp</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">ptmp</span><span class="p">)</span>
+                <span class="n">v</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">ts</span><span class="o">.</span><span class="n">frame</span><span class="p">,</span> <span class="n">minpos</span><span class="p">,</span> <span class="n">maxpos</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
+
+
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">ptmp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">]</span>
+            <span class="n">minpos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">ptmp</span><span class="p">)</span>
+            <span class="n">maxpos</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">ptmp</span><span class="p">)</span>
+            <span class="n">dim</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">max</span><span class="p">(</span><span class="n">ptmp</span><span class="p">)</span> <span class="o">-</span> <span class="n">np</span><span class="o">.</span><span class="n">min</span><span class="p">(</span><span class="n">ptmp</span><span class="p">)</span>
+            <span class="n">v</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="o">.</span><span class="n">frame</span><span class="p">,</span> <span class="n">minpos</span><span class="p">,</span> <span class="n">maxpos</span><span class="p">,</span> <span class="n">dim</span><span class="p">])</span>
+
+        <span class="n">box_dims</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">v</span><span class="p">)</span>
+        <span class="n">box_dims</span><span class="p">[:,</span> <span class="mi">0</span><span class="p">]</span> <span class="o">*=</span> <span class="n">timestep</span><span class="o">/</span><span class="mf">1000.0</span>
+
+                <span class="c1">#np.savetxt(&quot;bkp_box_dims.dat&quot;, box_dims) #Save dimensions to file</span>
+        <span class="k">return</span> <span class="n">box_dims</span></div>
+
+
+                
+<div class="viewcode-block" id="ClayAnalysis.get_partial_density"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.ClayAnalysis.get_partial_density">[docs]</a>    <span class="k">def</span> <span class="nf">get_partial_density</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">box_dims</span><span class="p">,</span> <span class="n">sel</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=-</span><span class="mi">1</span><span class="p">,</span><span class="n">density</span><span class="o">=</span><span class="kc">False</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Creates a list of simulation box dimensions with time</span>
+
+<span class="sd">            Required for use with the partial density function that was taken from DynDen </span>
+<span class="sd">            (https://github.com/punkpony/DynDen.git)</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                box_dims: Simulation box dimensions for each time step </span>
+<span class="sd">                sel:      Selection string for atoms using MDAnalysis selection string </span>
+<span class="sd">                bins:     (Optional) Number of bins to use, default 100</span>
+<span class="sd">                start:    (Optional) starting timstep to analyse, default 0</span>
+<span class="sd">                stop:     (Optional) Final timestep to analyse, default -1 (final step)</span>
+
+
+<span class="sd">            Returns:</span>
+<span class="sd">                Density profile along z-axis (assumed normal to clay) for each timepoint</span>
+<span class="sd">                in the form of a list of tuples of (histogramValues,binsizes) for each timestep </span>
+<span class="sd">                </span>
+<span class="sd">            Raises:</span>
+<span class="sd">                ZeroDivisionError, AssertionError, &amp; ValueError.</span>
+
+<span class="sd">            Examples:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Calculating partial densitiy for selection &quot;</span> <span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">sel</span><span class="p">))</span>
+        <span class="n">mol</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="n">sel</span><span class="p">)</span>
+        <span class="n">res</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#density collector</span>
+        <span class="c1">#print(mol)   </span>
+        <span class="n">cnt</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">if</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="o">.</span><span class="n">n_frames</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">):</span>
+                <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="p">[</span><span class="n">start</span><span class="p">:</span><span class="n">stop</span><span class="p">]:</span>
+
+                    <span class="n">curr_box</span> <span class="o">=</span> <span class="n">box_dims</span><span class="p">[</span><span class="n">cnt</span><span class="p">]</span>
+                    <span class="n">binning</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">curr_box</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">curr_box</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">bins</span><span class="p">)</span>
+                   
+                    <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">weights</span><span class="o">=</span><span class="n">mol</span><span class="o">.</span><span class="n">masses</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">binning</span><span class="p">)</span>
+
+                    <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+
+                    <span class="c1">#logger.debug(&quot;&gt;&gt; frame %s density...&quot;%ts.frame)</span>
+                    <span class="n">cnt</span> <span class="o">+=</span> <span class="mi">1</span>
+        <span class="k">else</span><span class="p">:</span>
+                <span class="n">curr_box</span> <span class="o">=</span> <span class="n">box_dims</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+                <span class="n">binning</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="n">curr_box</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">curr_box</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">,</span> <span class="n">bins</span><span class="p">)</span>
+                    
+                <span class="n">result</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">histogram</span><span class="p">(</span><span class="n">mol</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span> <span class="mi">2</span><span class="p">],</span> <span class="n">weights</span><span class="o">=</span><span class="n">mol</span><span class="o">.</span><span class="n">masses</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">binning</span><span class="p">)</span>
+                <span class="n">res</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">result</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">res</span></div>
+
+
+
+    <span class="c1">#def get_resnames_in_model(self):</span>
+    <span class="c1">#    &quot;&quot;&quot;</span>
+    <span class="c1">#        Simply returns a selection string for all resn</span>
+
+    <span class="c1">#        Required for use with the partial density function that was taken from DynDen </span>
+    <span class="c1">#        (https://github.com/punkpony/DynDen.git)</span>
+
+    <span class="c1">#        Args:</span>
+    <span class="c1">#            box_dims: Simulation box dimensions for each time step </span>
+    <span class="c1">#            sel:      Selection string for atoms using MDAnalysis selection string </span>
+    <span class="c1">#            bins:     (Optional) Number of bins to use, default 100</span>
+    <span class="c1">#            start:     (Optional) starting timstep to analyse, default 0</span>
+    <span class="c1">#            stop:      (Optional) Final timestep to analyse, default -1 (final step)</span>
+
+
+    <span class="c1">#        Returns:</span>
+    <span class="c1">#            Density profile along z-axis (assumed normal to clay) for each timepoint</span>
+    <span class="c1">#            in the form of a list of tuples of (histogramValues,binsizes) for each timestep </span>
+    <span class="c1">#            </span>
+    <span class="c1">#        Raises:</span>
+    <span class="c1">#            ZeroDivisionError, AssertionError, &amp; ValueError.</span>
+
+    <span class="c1">#        Examples:</span>
+
+    <span class="c1">#    &quot;&quot;&quot;</span>
+    <span class="c1">#    </span>
+    <span class="c1">#    all_labels = np.unique(self.universe.residues.resnames)</span>
+    <span class="c1">#    for l in all_labels:</span>
+    <span class="c1">#        all_select.append(&quot;resname %s&quot;%l)</span>
+    <span class="c1">#    all_labels = np.concatenate((all_labels, [&quot;system&quot;]))</span>
+    <span class="c1">#    all_select = np.concatenate((all_select, [&quot;all&quot;]))</span>
+    <span class="c1">#    return all_select</span>
+
+
+<span class="c1">###End of Mostly stolen from dynden (should import instead)########</span>
+                        
+<div class="viewcode-block" id="ClayAnalysis.plot_density_w_time"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.ClayAnalysis.plot_density_w_time">[docs]</a>    <span class="k">def</span> <span class="nf">plot_density_w_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">selection</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;&quot;</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Creates a matplotlib object of the density profile averaged over time for a selection</span>
+
+<span class="sd">            Given an atomgroup object, plots the time averaged mass density of these atoms along the</span>
+<span class="sd">            z-axis </span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                sel:      Atomgroup selection of atoms to plot the time averaged mass density of </span>
+<span class="sd">                label:    Label for the key of the plot object for this selection</span>
+
+<span class="sd">            Examples:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">den</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_partial_density</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">box_dims</span><span class="p">,</span><span class="s2">&quot; or &quot;</span><span class="o">.</span><span class="n">join</span><span class="p">([</span><span class="s2">&quot;name &quot;</span><span class="o">+</span><span class="n">s</span> <span class="k">for</span> <span class="n">s</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">names</span><span class="p">)]))</span>
+        <span class="n">z_points</span> <span class="o">=</span> <span class="p">(</span><span class="n">den</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="n">den</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="k">for</span> <span class="n">t_step</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">den</span><span class="p">)):</span>
+            <span class="n">sum_den</span> <span class="o">=</span> <span class="n">den</span><span class="p">[</span><span class="n">t_step</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">avg_den</span> <span class="o">=</span> <span class="n">sum_den</span><span class="o">/</span><span class="nb">len</span><span class="p">(</span><span class="n">den</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">plot</span><span class="p">(</span><span class="n">z_points</span><span class="p">,</span><span class="n">avg_den</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="n">label</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">savefig</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">label</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot; density.png&quot;</span><span class="p">)</span></div>
+
+<span class="c1">############Determining basal surfaces</span>
+
+<div class="viewcode-block" id="ClayAnalysis.move_clay_to_origin"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.ClayAnalysis.move_clay_to_origin">[docs]</a>    <span class="k">def</span> <span class="nf">move_clay_to_origin</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Shift entire clay such that its center of mass is at 0 along the z-axis</span>
+
+<span class="sd">            Is called upon setup of a clay analysis object and so is not really needed to be called </span>
+<span class="sd">            directly</span>
+
+
+<span class="sd">            Examples:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Shifting clay center of mass to be at origin&quot;</span><span class="p">)</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="o">.</span><span class="n">add_transformations</span><span class="p">(</span><span class="o">*</span><span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">__shift_clay_to_origin</span><span class="p">,</span><span class="n">mda</span><span class="o">.</span><span class="n">transformations</span><span class="o">.</span><span class="n">wrap</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">atoms</span><span class="p">)])</span>
+        <span class="k">except</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Unable to shift the clay to the origin, perhaps already shifted?&quot;</span><span class="p">)</span> </div>
+
+
+<div class="viewcode-block" id="ClayAnalysis.generate_surface_group"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.ClayAnalysis.generate_surface_group">[docs]</a>    <span class="k">def</span> <span class="nf">generate_surface_group</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">surf_type</span><span class="o">=</span><span class="s2">&quot;waters&quot;</span><span class="p">,</span><span class="n">box_dims</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Creates a list of two atomgroups, which represent the &#39;top&#39; and &#39;bottom&#39; basal surfaces </span>
+
+<span class="sd">            Returns two atomgroups, the lower and upper surface respecively.</span>
+<span class="sd">            NOTE:Makes use of assumption of 3 layered clay and uses the mass density along z to work</span>
+<span class="sd">            out which atoms are at surface. As such if the density profile is significantly </span>
+<span class="sd">            different in terms of number of peaks, this code will identify the incorrect groups as </span>
+<span class="sd">            surface atoms</span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                surf_type: (optional) clay components of interest options include waters or mineral,</span>
+<span class="sd">                            default waters (split due to differing mass density profile) </span>
+
+<span class="sd">                box_dims: (optional) box dimension over time, default uses existing  </span>
+<span class="sd">        </span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                List of 2 atomgroups of clay components that are at a basal surface, first element </span>
+<span class="sd">                being the lower surface, the second the upper surface</span>
+
+<span class="sd">                </span>
+<span class="sd">            Raises:</span>
+<span class="sd">                ZeroDivisionError, AssertionError, &amp; ValueError.</span>
+
+<span class="sd">            Examples:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span> 
+
+            
+        <span class="c1">#TODO: Change over time might be an issue if clay not approx static</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Determining basal surfaces of the clay:&quot;</span><span class="p">)</span> 
+
+        <span class="k">try</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">move_clay_to_origin</span><span class="p">()</span>
+        <span class="k">except</span> <span class="ne">ValueError</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Clay already centered to origin&quot;</span><span class="p">)</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">box_dims</span> <span class="o">==</span> <span class="kc">None</span><span class="p">):</span>
+            <span class="n">box_dims</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">box_dims</span>
+        
+        <span class="n">cly_comp</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">density</span><span class="o">=</span><span class="p">[]</span>
+        <span class="n">lower_layers</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">upper_layers</span> <span class="o">=</span> <span class="p">[]</span>
+        
+        <span class="k">if</span><span class="p">(</span><span class="n">surf_type</span> <span class="o">==</span> <span class="s2">&quot;mineral&quot;</span><span class="p">):</span> 
+                <span class="n">atom_sel</span> <span class="o">=</span><span class="p">[</span><span class="s2">&quot;name ST* or name AT*&quot;</span><span class="p">]</span> <span class="c1">#Should just be not certain types</span>
+                <span class="n">den</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_partial_density</span><span class="p">(</span><span class="n">box_dims</span><span class="p">,</span> <span class="s2">&quot;resname NON* and (name ST* or name AT*)&quot;</span><span class="p">)</span><span class="c1">#or name AT*&quot;)</span>
+                <span class="n">peakNum</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span><span class="mi">7</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+                <span class="n">atom_sel</span> <span class="o">=</span> <span class="p">[</span><span class="s2">&quot;resname NON* and name O*&quot;</span><span class="p">]</span><span class="c1">#[&quot;name O[!W]* and name O[!T]*&quot;]</span>
+                <span class="n">den</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">get_partial_density</span><span class="p">(</span><span class="n">box_dims</span><span class="p">,</span><span class="s2">&quot; resname NON* and name O*&quot;</span><span class="p">)</span> 
+                <span class="c1">#self.plot_density_w_time(self.universe.atoms.select_atoms(&quot;resname NON* and name O*&quot;))</span>
+
+
+                <span class="n">peakNum</span> <span class="o">=</span> <span class="p">[</span><span class="mi">5</span><span class="p">,</span><span class="mi">7</span><span class="p">]</span>
+
+        <span class="c1">#Makes use of initial state only</span>
+        <span class="n">z_points</span> <span class="o">=</span> <span class="p">(</span><span class="n">den</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][</span><span class="mi">1</span><span class="p">:]</span> <span class="o">+</span> <span class="n">den</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">1</span><span class="p">][:</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span> <span class="o">/</span> <span class="mi">2</span>
+        <span class="n">minima</span> <span class="o">=</span> <span class="n">get_minima_coords</span><span class="p">(</span><span class="n">z_points</span><span class="p">,</span><span class="n">den</span><span class="p">[</span><span class="mi">0</span><span class="p">][</span><span class="mi">0</span><span class="p">])</span>
+        <span class="c1">#Want to find the z axis boundary of the lower clay basal surface</span>
+
+        <span class="n">lower_surface_bounds</span> <span class="o">=</span> <span class="n">minima</span><span class="p">[</span><span class="n">peakNum</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="n">peakNum</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+        
+        <span class="c1">#Want to find the z axis boundary of the other clay basal surface</span>
+        <span class="n">upper_surface_bounds</span> <span class="o">=</span> <span class="n">minima</span><span class="p">[</span><span class="n">peakNum</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">-</span><span class="mi">1</span><span class="p">:</span><span class="n">peakNum</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">+</span><span class="mi">1</span><span class="p">]</span>
+        <span class="k">for</span> <span class="n">sel</span> <span class="ow">in</span> <span class="n">atom_sel</span><span class="p">:</span>
+            <span class="n">cly_comp</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="n">sel</span><span class="p">))</span>
+             
+            <span class="k">try</span><span class="p">:</span>
+                
+                <span class="c1">#Use these found surface boundaries to create an atomgroup of upper and lower surface</span>
+                <span class="n">lower_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;(&quot;</span><span class="o">+</span><span class="n">sel</span>
+                                                 <span class="o">+</span> <span class="s2">&quot;) and (prop z &gt;= &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">lower_surface_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>\
+                                                 <span class="o">+</span> <span class="s2">&quot;) and (prop z &lt; &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">lower_surface_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>\
+                                                 <span class="o">+</span><span class="s2">&quot;)&quot;</span><span class="p">))</span>
+                
+                <span class="n">upper_layers</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;(&quot;</span><span class="o">+</span><span class="n">sel</span>
+                                                 <span class="o">+</span> <span class="s2">&quot;) and prop z &gt;= &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">upper_surface_bounds</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>\
+                                                 <span class="o">+</span>  <span class="s2">&quot; and prop z &lt; &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">upper_surface_bounds</span><span class="p">[</span><span class="mi">1</span><span class="p">])))</span>
+            
+            <span class="k">except</span> <span class="ne">IndexError</span><span class="p">:</span> <span class="c1">#If density is entirely 0</span>
+                <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Error looking at surfaces of selection &quot;</span> <span class="o">+</span> <span class="n">sel</span> <span class="o">+</span> <span class="s2">&quot; (might be caused by it having no density or obvious minimums?)&quot;</span><span class="p">)</span>
+               
+        
+        <span class="k">return</span> <span class="p">[</span><span class="n">lower_layers</span><span class="p">,</span><span class="n">upper_layers</span><span class="p">]</span></div>
+
+
+
+
+
+<span class="c1">###############################Adsorption analysis</span>
+
+
+<div class="viewcode-block" id="ClayAnalysis.find_adsorbed"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.ClayAnalysis.find_adsorbed">[docs]</a>    <span class="k">def</span> <span class="nf">find_adsorbed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">surface_ids</span><span class="p">,</span><span class="n">adsorbants_resnames</span><span class="p">,</span><span class="n">r_c_upper</span><span class="p">,</span><span class="n">r_c_lower</span><span class="o">=</span><span class="mi">0</span><span class="p">):</span><span class="c1">#,r_c=10):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Return a dictionary of surface ions and the things adsorbed to them at the current step</span>
+
+<span class="sd">            By looping over every surface atoms, generates a dictionary of surface atoms (atomgroup </span>
+<span class="sd">            with single surface atoms within) with something adsorbed to them to each cation that is</span>
+<span class="sd">            adsorbed using the radial disance between the surface atom and cation as a cutoff of </span>
+<span class="sd">            adsorbed versus non adsorbed</span>
+
+
+<span class="sd">          </span>
+<span class="sd">            Args:</span>
+<span class="sd">                surface_ids: index of atoms at the surface of clay</span>
+<span class="sd">                adsorbants_resnames: resnames of possible adsorbants to the surface of clay that are</span>
+<span class="sd">                 of interest</span>
+<span class="sd">                r_c_upper: Cutoff distance at which a particle is considered to be adsorbed</span>
+<span class="sd">                r_c_lower: Distance along z above which a particle is considered to be adsorbed</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                Dictionary of atomGroups of adsorbed ions (of type given in adsorbant) to given </span>
+<span class="sd">                surface atoms</span>
+<span class="sd">                i.e. {Surface_atom (Atomgroup containing 1 atom): [Adsorbed_cations (Atomgroup)]} </span>
+
+<span class="sd">                </span>
+<span class="sd">            Raises:</span>
+<span class="sd">                ZeroDivisionError, AssertionError, &amp; ValueError.</span>
+
+<span class="sd">            Examples:</span>
+
+<span class="sd">        &quot;&quot;&quot;</span> 
+        <span class="n">adsorbed_to_surf</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">surface_ids</span><span class="p">)):</span>
+            
+            <span class="n">search_strs</span><span class="o">=</span> <span class="s2">&quot;&quot;</span>
+            <span class="n">adsorbed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+            
+            <span class="k">for</span> <span class="n">p_ad</span> <span class="ow">in</span> <span class="n">adsorbants_resnames</span><span class="p">:</span> <span class="c1">#Don&#39;t think need to do the around thing every time here?</span>
+                <span class="n">search_strs</span><span class="o">+=</span> <span class="s2">&quot;(resname &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">p_ad</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; and sphlayer &quot;</span><span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">r_c_lower</span><span class="p">)</span> <span class="o">+</span> <span class="s2">&quot; &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">r_c_upper</span><span class="p">)</span> <span class="o">+</span><span class="s2">&quot; index &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">surface_ids</span><span class="p">[</span><span class="n">i</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot;) or &quot;</span>
+                <span class="c1">#search_strs+= &quot;(resname &quot; + str(p_ad) + &quot; and around &quot;+ str(r_c) + &quot; index &quot;+str(surface_ids[i])+&quot;) or &quot;</span>
+                <span class="c1">#Might be quicker to do as two lists</span>
+
+            <span class="n">surf_id</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;index &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">surface_ids</span><span class="p">[</span><span class="n">i</span><span class="p">]))</span>
+            <span class="n">adsorbed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="n">search_strs</span><span class="p">[:</span><span class="o">-</span><span class="mi">3</span><span class="p">])</span>
+            <span class="c1">#print(adsorbed)</span>
+            <span class="k">if</span> <span class="p">(</span><span class="ow">not</span> <span class="n">adsorbed</span><span class="o">.</span><span class="n">n_atoms</span> <span class="o">==</span> <span class="mi">0</span><span class="p">):</span>  
+                
+                <span class="c1">#If not adsorbed to anything, don&#39;t bother adding to dict</span>
+                <span class="n">adsorbed_to_surf</span><span class="p">[</span><span class="n">surf_id</span><span class="p">]</span><span class="o">=</span> <span class="n">adsorbed</span>
+        <span class="k">return</span> <span class="n">adsorbed_to_surf</span></div>
+
+<div class="viewcode-block" id="ClayAnalysis.find_adsorption_times"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.ClayAnalysis.find_adsorption_times">[docs]</a>    <span class="k">def</span> <span class="nf">find_adsorption_times</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">lower_surf_grp</span><span class="p">,</span> <span class="n">upper_surf_grp</span><span class="p">,</span> <span class="n">adsorbant_resname</span><span class="p">,</span> <span class="n">r_c_upper</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">r_c_lower</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span> <span class="n">stop</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Determines the times overwhich an ions are adsorbed to a surface by looking at z position</span>
+
+<span class="sd">            Simply uses z position of ions relative to the surface of the clay as a definition for </span>
+<span class="sd">            adsorption. i.e. if an ion has position along the z-axis a distance between r_c_lower </span>
+<span class="sd">            and r_c_upper to the average position of surface clay atoms</span>
+
+<span class="sd">            ##REPLACE BELOW WITH AN IMAGE </span>
+<span class="sd">            upper surface</span>
+<span class="sd">            -------------</span>
+<span class="sd">            r_c_lower</span>
+<span class="sd">            -------------</span>
+<span class="sd">            adsorbed ions</span>
+<span class="sd">            -------------</span>
+<span class="sd">            r_c_upper</span>
+<span class="sd">            -------------</span>
+<span class="sd">            Bulk Solution</span>
+<span class="sd">            -------------</span>
+<span class="sd">            r_c_upper</span>
+<span class="sd">            -------------</span>
+<span class="sd">            adsorbed ions</span>
+<span class="sd">            -------------</span>
+<span class="sd">            r_c_lower</span>
+<span class="sd">            -------------</span>
+<span class="sd">            lower surface</span>
+<span class="sd">            </span>
+<span class="sd">            NOTE: If an ion is &#39;already adsorbed&#39; at the start of the simulation it will be </span>
+<span class="sd">                  considered as though it adsorbs at starting time step. As such ions should start </span>
+<span class="sd">                  off far from the clay surface (achiveable via the reinsert_ions.py script in </span>
+<span class="sd">                  https://github.com/Benjamin5555/Clay-Project)</span>
+<span class="sd">            NOTE: If an ion is still adsorbed at the end of the simulation its time will not be </span>
+<span class="sd">                  output </span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                lower_surf_grp: &#39;bottom&#39; clay surface atomgroup</span>
+<span class="sd">                upper_surf_grp: &#39;top&#39; clay surface atomgroup</span>
+<span class="sd">                adsorbants_resnames: resnames of possible adsorbants to the surface of clay that are</span>
+<span class="sd">                                     of interest</span>
+<span class="sd">                r_c_upper: Cutoff distance at which a particle is considered to be adsorbed</span>
+<span class="sd">                r_c_lower: Distance along z above which a particle is considered to be adsorbed</span>
+<span class="sd">                start:     (Optional) starting timstep to analyse, default 0</span>
+<span class="sd">                stop:      (Optional) Final timestep to analyse, default -1 (final step)</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                Statistics on adsorption and a list of adsorption times collected over the </span>
+<span class="sd">                trajectory for atoms that are within the distance boundary  </span>
+<span class="sd">                </span>
+<span class="sd">                Statistics have form Step,Number of  adsorption events, num desorption events, </span>
+<span class="sd">                number continuing to be adsorbed, number adsorbed total at ts, total_adsorption </span>
+<span class="sd">                events over whole trajectory</span>
+<span class="sd"> </span>
+<span class="sd">            Raises:</span>
+<span class="sd">                ZeroDivisionError, AssertionError, &amp; ValueError.</span>
+
+<span class="sd">            Examples:</span>
+<span class="sd">                &gt;&gt;&gt; cal = clayAnalysis.ClayAnalysis(u)</span>
+<span class="sd">                &gt;&gt;&gt; surfaces = cal.generate_surface_group(&quot;mineral&quot;)</span>
+<span class="sd">                &gt;&gt;&gt; lower_surf_grp = cal.combine_atomgroups(surfaces[0])</span>
+<span class="sd">                &gt;&gt;&gt; upper_surf_grp = cal.combine_atomgroups(surfaces[1])</span>
+<span class="sd">                &gt;&gt;&gt; times,stats = cal.find_adsorbant_times(lower_surf_grp,upper_surf_grp,&quot;Cs&quot;,4.8,0)</span>
+<span class="sd">        &quot;&quot;&quot;</span> 
+        <span class="n">adsorbant_resname</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">adsorbant_resname</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">current_adsorbed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;&quot;</span><span class="p">)</span>
+        <span class="n">historic_adsorbed</span> <span class="o">=</span> <span class="p">{}</span>
+        <span class="n">times</span> <span class="o">=</span> <span class="p">[]</span> 
+        <span class="n">stats</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">tot_ads</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="n">avg_surf_b</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">upper_surf_grp</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">avg_surf_a</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">average</span><span class="p">(</span><span class="n">lower_surf_grp</span><span class="o">.</span><span class="n">positions</span><span class="o">.</span><span class="n">T</span><span class="p">[</span><span class="mi">2</span><span class="p">])</span>
+        <span class="n">surf_b_ub</span> <span class="o">=</span> <span class="n">avg_surf_b</span><span class="o">-</span><span class="n">r_c_lower</span>
+        <span class="n">surf_b_lb</span> <span class="o">=</span> <span class="n">avg_surf_b</span><span class="o">-</span><span class="n">r_c_upper</span> 
+        <span class="n">surf_a_ub</span> <span class="o">=</span> <span class="n">avg_surf_a</span><span class="o">+</span><span class="n">r_c_upper</span> 
+        <span class="n">surf_a_lb</span> <span class="o">=</span> <span class="n">avg_surf_a</span><span class="o">+</span><span class="n">r_c_lower</span>
+
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">adsorbant_resname</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s1">&#39;stats.csv&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
+                <span class="n">statWriter</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">csvfile</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+
+                <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="p">:</span>
+                    <span class="nb">print</span><span class="p">(</span><span class="n">adsorbant_resname</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+
+                    <span class="c1">#counters </span>
+                    <span class="n">c_ad</span> <span class="o">=</span> <span class="mi">0</span>  
+                    <span class="n">c_ct</span> <span class="o">=</span> <span class="mi">0</span> 
+                    <span class="n">c_ds</span> <span class="o">=</span> <span class="mi">0</span>
+                    
+                    <span class="n">current_adsorbed_ls</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;resname &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">adsorbant_resname</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot; and prop z &gt; &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">surf_a_lb</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot; and prop z &lt; &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">surf_a_ub</span><span class="p">))</span>
+                    <span class="n">current_adsorbed_us</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;resname &quot;</span> <span class="o">+</span> <span class="nb">str</span><span class="p">(</span><span class="n">adsorbant_resname</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot; and prop z &gt; &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">surf_b_lb</span><span class="p">)</span><span class="o">+</span><span class="s2">&quot; and prop z &lt; &quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="n">surf_b_ub</span><span class="p">))</span>
+                    
+                    
+                    <span class="n">current_adsorbed</span> <span class="o">=</span> <span class="n">current_adsorbed_ls</span> <span class="o">+</span> <span class="n">current_adsorbed_us</span> 
+                    <span class="n">hist_ads_grp</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine_atomgroups</span><span class="p">(</span><span class="n">historic_adsorbed</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+                    <span class="n">desorbed</span> <span class="o">=</span> <span class="n">hist_ads_grp</span> <span class="o">-</span> <span class="n">current_adsorbed</span>
+                    <span class="n">adsorbed</span> <span class="o">=</span> <span class="n">current_adsorbed</span> <span class="o">-</span> <span class="n">hist_ads_grp</span>
+                    <span class="n">cont_ads</span> <span class="o">=</span> <span class="n">current_adsorbed</span> <span class="o">&amp;</span> <span class="n">hist_ads_grp</span>
+                    
+                    <span class="k">for</span> <span class="n">ads_id</span> <span class="ow">in</span> <span class="n">adsorbed</span><span class="p">:</span>
+                        <span class="n">historic_adsorbed</span><span class="p">[</span><span class="n">ads_id</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span> <span class="c1"># Add a time adsorbed for</span>
+                        <span class="n">c_ad</span> <span class="o">=</span> <span class="n">c_ad</span> <span class="o">+</span> <span class="mi">1</span>
+    
+                    <span class="k">for</span> <span class="n">ct_id</span> <span class="ow">in</span> <span class="n">cont_ads</span><span class="p">:</span>
+                        <span class="c1">#NOTE: If instead you recorded the timestep at which this ion was adsorbed and used the difference to the step it desorbs, you would not require this incrementing step over all ions</span>
+                        <span class="n">historic_adsorbed</span><span class="p">[</span><span class="n">ct_id</span><span class="p">]</span> <span class="o">+=</span> <span class="mi">1</span> 
+                        <span class="n">c_ct</span> <span class="o">=</span> <span class="n">c_ct</span> <span class="o">+</span> <span class="mi">1</span>
+
+                    <span class="k">for</span> <span class="n">desorbed_id</span> <span class="ow">in</span> <span class="n">desorbed</span><span class="p">:</span>
+                        <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">historic_adsorbed</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">desorbed_id</span><span class="p">))</span>
+                        <span class="n">c_ds</span> <span class="o">=</span> <span class="n">c_ds</span> <span class="o">+</span> <span class="mi">1</span>
+                    
+                    <span class="n">tot_ads</span> <span class="o">=</span> <span class="n">tot_ads</span> <span class="o">+</span> <span class="n">c_ad</span>
+                    <span class="n">stats</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">c_ad</span><span class="p">,</span><span class="n">c_ds</span><span class="p">,</span><span class="n">c_ct</span><span class="p">,</span><span class="n">c_ad</span><span class="o">+</span><span class="n">c_ct</span><span class="p">,</span><span class="n">tot_ads</span><span class="p">])</span> 
+                    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;STATS OUTPUT&quot;</span><span class="o">+</span><span class="nb">str</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="o">.</span><span class="n">ts</span><span class="p">))</span>
+                    <span class="nb">print</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="o">.</span><span class="n">time</span><span class="p">]</span><span class="o">+</span><span class="n">stats</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                    <span class="n">statWriter</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">adsorbant_resname</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span><span class="o">+</span><span class="s2">&quot;OuputTimes.txt&quot;</span><span class="p">,</span><span class="n">times</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">times</span><span class="p">,</span> <span class="n">stats</span></div>
+
+
+<div class="viewcode-block" id="ClayAnalysis.find_adsorption_times_c"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.ClayAnalysis.find_adsorption_times_c">[docs]</a>    <span class="k">def</span> <span class="nf">find_adsorption_times_c</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">surface_ids</span><span class="p">,</span><span class="n">adsorbant_resname</span><span class="p">,</span><span class="n">r_c_upper</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">r_c_lower</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">start</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span><span class="n">stop</span><span class="o">=-</span><span class="mi">1</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Determines the times overwhich ions are adsorbed to a surface by looking at radial </span>
+<span class="sd">            distance of all surface atoms</span>
+
+<span class="sd">            Uses a similar process to find_adsorpion_times in terms of looking at changes in groups </span>
+<span class="sd">            but is able to keep track of specific surface atom to specific ion relationships and so</span>
+<span class="sd">            could be built upon to gain furher info on specific adsorption events, should it ever be </span>
+<span class="sd">            needed</span>
+
+
+<span class="sd">                       </span>
+<span class="sd">            NOTE: If an ion is &#39;already adsorbed&#39; at the start of the simulation it will be </span>
+<span class="sd">                  considered as though it adsorbs at starting time step. As such ions should start </span>
+<span class="sd">                  off far from the clay surface (achiveable via the reinsert_ions.py script in </span>
+<span class="sd">                  https://github.com/Benjamin5555/Clay-Project)</span>
+<span class="sd">            NOTE: If an ion is still adsorbed at the end of the simulation its time will not be </span>
+<span class="sd">                  output </span>
+
+<span class="sd">            Args:</span>
+<span class="sd">                surface_ids: atomgroup.indices property of the surface group of interest to look at </span>
+<span class="sd">                             adsorbance to </span>
+<span class="sd">                lower_surf_grp: &#39;bottom&#39; clay surface atomgroup</span>
+<span class="sd">                upper_surf_grp: &#39;top&#39; clay surface atomgroup</span>
+<span class="sd">                adsorbants_resnames: resnames of possible adsorbants to the surface of clay that are</span>
+<span class="sd">                                     of interest</span>
+<span class="sd">                r_c_upper: Cutoff distance at which a particle is considered to be adsorbed</span>
+<span class="sd">                r_c_lower: Distance along z above which a particle is considered to be adsorbed</span>
+<span class="sd">                start:     (Optional) starting timstep to analyse, default 0</span>
+<span class="sd">                stop:      (Optional) Final timestep to analyse, default -1 (final step)</span>
+
+<span class="sd">            Returns:</span>
+<span class="sd">                Statistics on adsorption and a list of adsorption times collected over the </span>
+<span class="sd">                trajectory for atoms that are within the distance boundary  </span>
+<span class="sd">                </span>
+<span class="sd">                Statistics have form Step,Number of  adsorption events, num desorption events, </span>
+<span class="sd">                number continuing to be adsorbed, number adsorbed total at ts, total_adsorption </span>
+<span class="sd">                events over whole trajectory</span>
+<span class="sd"> </span>
+<span class="sd">            Raises:</span>
+<span class="sd">                ZeroDivisionError, AssertionError, &amp; ValueError.</span>
+
+<span class="sd">            Examples:</span>
+<span class="sd">                &gt;&gt;&gt; cal = clayAnalysis.ClayAnalysis(u)</span>
+<span class="sd">                &gt;&gt;&gt; surfaces = cal.generate_surface_group(&quot;mineral&quot;)</span>
+<span class="sd">                &gt;&gt;&gt; lower_surf_grp = cal.combine_atomgroups(surfaces[0])</span>
+<span class="sd">                &gt;&gt;&gt; upper_surf_grp = cal.combine_atomgroups(surfaces[1])</span>
+<span class="sd">                &gt;&gt;&gt; times,stats = cal.find_adsorbant_times(lower_surf_grp,upper_surf_grp,&quot;Cs&quot;,4.8,0)</span>
+<span class="sd">                        </span>
+
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1">#TODO: Allow different ions to have different adsorption cutoff distances</span>
+        <span class="c1">#TODO: Case where ions adsorbed in first time step </span>
+        <span class="c1">#        -&gt;considered to be adsorbed as though just adsorbed to surface</span>
+        <span class="c1">#TODO: Case where ions still adsorbed to the surface at the end -&gt; times not recorded</span>
+        <span class="n">times</span> <span class="o">=</span> <span class="p">[]</span> 
+        
+        <span class="n">prev_ads_record</span> <span class="o">=</span><span class="p">{}</span>  
+        <span class="c1"># {surface_atom: {adsorbant:time adsorbed}}</span>
+        <span class="c1"># Record of surface atoms and their adsorbants as well as time adsorbed</span>
+        
+        <span class="n">stats</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="n">counters</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">tot_ads</span> <span class="o">=</span> <span class="mi">0</span>  
+        
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Step,Num ads, num ds, num continue, num adsorbed tot at ts,total_adsorption events&quot;</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">adsorbant_resname</span><span class="o">+</span><span class="s1">&#39;stats.csv&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
+                <span class="n">statWriter</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">csvfile</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+ 
+                <span class="k">for</span> <span class="n">ts</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="p">:</span>
+                        <span class="c1">#counters </span>
+                        <span class="n">c_ad</span> <span class="o">=</span> <span class="mi">0</span>  
+                        <span class="n">c_ct</span> <span class="o">=</span> <span class="mi">0</span> 
+                        <span class="n">c_ds</span> <span class="o">=</span> <span class="mi">0</span>
+                        
+                        <span class="c1">#Get surface atoms and attached ions  </span>
+                        <span class="c1"># {surface_atom: adsorbant}</span>
+                        <span class="n">currently_ads_dict</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">find_adsorbed</span><span class="p">(</span><span class="n">surface_ids</span><span class="p">,</span><span class="n">adsorbant_resname</span><span class="p">,</span><span class="n">r_c_upper</span><span class="p">,</span><span class="n">r_c_lower</span><span class="p">)</span>
+                        <span class="nb">print</span><span class="p">(</span><span class="n">currently_ads_dict</span><span class="p">)</span> 
+                        <span class="c1">#If a surface ion is no longer sorbed to anything, we remove it from the list of stored ions</span>
+                        <span class="c1">#TODO Combine into below loop?</span>
+                        <span class="n">rm</span> <span class="o">=</span>   <span class="n">prev_ads_record</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span> <span class="o">-</span> <span class="n">currently_ads_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">()</span>
+                        <span class="k">for</span> <span class="n">rem_surf_at</span> <span class="ow">in</span> <span class="n">rm</span><span class="p">:</span>
+                            <span class="n">removed</span> <span class="o">=</span> <span class="n">prev_ads_record</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">rem_surf_at</span><span class="p">)</span>
+                            <span class="k">for</span> <span class="n">rem_ion</span> <span class="ow">in</span> <span class="n">removed</span><span class="p">:</span>
+                                <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">removed</span><span class="p">[</span><span class="n">rem_ion</span><span class="p">])</span>
+                                
+                                <span class="n">c_ds</span> <span class="o">=</span> <span class="n">c_ds</span> <span class="o">+</span><span class="mi">1</span> 
+                       
+                        <span class="c1">#Look at each surface ion which has something adsorbed to it and compare to historic </span>
+                        <span class="c1">#record of adsorpion info (no interdependency other than stats)</span>
+                        <span class="k">for</span> <span class="n">surf_atm</span> <span class="ow">in</span> <span class="n">currently_ads_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+                            
+                            <span class="c1">#if surface atom not previously adsorbed to then will need to be added to record</span>
+                            <span class="c1">#dictionary</span>
+                            <span class="k">if</span><span class="p">(</span><span class="ow">not</span> <span class="n">surf_atm</span> <span class="ow">in</span> <span class="n">prev_ads_record</span><span class="o">.</span><span class="n">keys</span><span class="p">()):</span>
+                                <span class="n">prev_ads_record</span><span class="p">[</span><span class="n">surf_atm</span><span class="p">]</span> <span class="o">=</span> <span class="p">{}</span>
+                              
+                            <span class="c1">#Combine together list of atoms adsorbed to the surface atom into a single </span>
+                            <span class="c1">#atomgroup (to perform group operations)</span>
+                            <span class="n">prev_adsorbed</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">combine_atomgroups</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="n">prev_ads_record</span><span class="p">[</span><span class="n">surf_atm</span><span class="p">]</span><span class="o">.</span><span class="n">keys</span><span class="p">()))</span>
+                            <span class="n">prev_ads_record_at_surf_atm</span> <span class="o">=</span> <span class="n">prev_ads_record</span><span class="p">[</span><span class="n">surf_atm</span><span class="p">]</span>
+
+                        
+                            <span class="n">currently_adsorbed</span> <span class="o">=</span> <span class="n">currently_ads_dict</span><span class="p">[</span><span class="n">surf_atm</span><span class="p">]</span> 
+                                            
+                            <span class="c1">#Looking at in current but not historic (newly adsorbed)</span>
+                            <span class="n">newly_adsorbed</span> <span class="o">=</span> <span class="n">currently_adsorbed</span> <span class="o">-</span> <span class="n">prev_adsorbed</span> 
+                            <span class="n">c_ad</span><span class="o">=</span> <span class="n">c_ad</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_record_w_newly_adsorbed</span><span class="p">(</span><span class="n">newly_adsorbed</span><span class="p">,</span><span class="n">prev_ads_record_at_surf_atm</span> <span class="p">)</span>
+                                
+                            <span class="c1">#In both historic and current (continue to be adsorbed)</span>
+                            <span class="n">continue_to_adsorb</span> <span class="o">=</span> <span class="n">currently_adsorbed</span> <span class="o">&amp;</span> <span class="n">prev_adsorbed</span> 
+                            <span class="c1">#NOTE: If instead you recorded the timestep at which this ion was adsorbed and used the difference to the step it desorbs, you would not require this incrementing step over all ions</span>
+
+                            <span class="n">c_ct</span> <span class="o">=</span> <span class="n">c_ct</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_record_w_continuing_adsorbed</span><span class="p">(</span><span class="n">continue_to_adsorb</span><span class="p">,</span><span class="n">prev_ads_record_at_surf_atm</span> <span class="p">)</span>
+                            
+                            <span class="c1">#Only in historic (desorbed this step) </span>
+                            <span class="n">newly_desorbed</span> <span class="o">=</span> <span class="n">prev_adsorbed</span> <span class="o">-</span> <span class="n">currently_adsorbed</span> 
+                            <span class="n">c_ds</span> <span class="o">=</span> <span class="n">c_ds</span> <span class="o">+</span> <span class="bp">self</span><span class="o">.</span><span class="n">_update_record_w_newly_desorbed</span><span class="p">(</span><span class="n">newly_desorbed</span><span class="p">,</span><span class="n">prev_ads_record_at_surf_atm</span><span class="p">,</span><span class="n">times</span><span class="p">)</span> 
+                            
+                        <span class="n">tot_ads</span> <span class="o">=</span> <span class="n">tot_ads</span> <span class="o">+</span> <span class="n">c_ad</span>
+                        <span class="n">stats</span><span class="o">.</span><span class="n">append</span><span class="p">([</span><span class="n">c_ad</span><span class="p">,</span><span class="n">c_ds</span><span class="p">,</span><span class="n">c_ct</span><span class="p">,</span><span class="n">c_ad</span><span class="o">+</span><span class="n">c_ct</span><span class="p">,</span><span class="n">tot_ads</span><span class="p">])</span> 
+                        
+                        <span class="nb">print</span><span class="p">([</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="o">.</span><span class="n">ts</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">trajectory</span><span class="o">.</span><span class="n">time</span><span class="p">]</span><span class="o">+</span><span class="n">stats</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+                                        
+                        <span class="n">statWriter</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">stats</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span>
+        <span class="n">np</span><span class="o">.</span><span class="n">savetxt</span><span class="p">(</span><span class="s2">&quot;ouputTimes.txt&quot;</span><span class="p">,</span><span class="n">times</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">times</span><span class="p">,</span> <span class="n">stats</span></div>
+
+    <span class="k">def</span> <span class="nf">_update_record_w_newly_adsorbed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">newly_adsorbed</span><span class="p">,</span><span class="n">prev_ads_record_at_surf_atm</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Update &#39;historic record&#39; of what is adsorbed at the previous timestep to add in any new </span>
+<span class="sd">            ions that adsorb at that step</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">c_ad</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">ads</span> <span class="ow">in</span> <span class="n">newly_adsorbed</span><span class="p">:</span>
+            <span class="n">c_ad</span> <span class="o">=</span> <span class="n">c_ad</span> <span class="o">+</span><span class="mi">1</span>
+            <span class="n">prev_ads_record_at_surf_atm</span><span class="p">[</span><span class="n">ads</span><span class="p">]</span><span class="o">=</span><span class="mi">1</span> <span class="c1">#Assumes this to be starting point +-dt error</span>
+        <span class="k">return</span> <span class="n">c_ad</span>
+    
+    <span class="k">def</span> <span class="nf">_update_record_w_continuing_adsorbed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">continue_to_adsorb</span><span class="p">,</span><span class="n">prev_ads_record_at_surf_atm</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Update the record of ions that are continuing to be adsorbed to a surface ion by </span>
+<span class="sd">            increment the time for which they have been adsorbed</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">c_ct</span> <span class="o">=</span><span class="mi">0</span> 
+        <span class="k">for</span> <span class="n">inc</span> <span class="ow">in</span> <span class="n">continue_to_adsorb</span><span class="p">:</span> 
+            <span class="n">time</span> <span class="o">=</span> <span class="n">prev_ads_record_at_surf_atm</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">inc</span><span class="p">)</span>
+            <span class="n">prev_ads_record_at_surf_atm</span><span class="p">[</span><span class="n">inc</span><span class="p">]</span> <span class="o">=</span> <span class="n">time</span><span class="o">+</span><span class="mi">1</span><span class="c1">#self.universe.dt</span>
+            <span class="n">c_ct</span> <span class="o">=</span> <span class="n">c_ct</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="k">return</span> <span class="n">c_ct</span>            
+
+    <span class="k">def</span> <span class="nf">_update_record_w_newly_desorbed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">newly_desorbed</span><span class="p">,</span><span class="n">prev_ads_record_at_surf_atm</span><span class="p">,</span><span class="n">times</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Update record for surface ions that were adsorbed to multiple ions but in the current </span>
+<span class="sd">            time step have had one or more (but not all) of these desorb. Recording time overwhich </span>
+<span class="sd">            they were adsorbed in # time steps</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">c_ds</span> <span class="o">=</span> <span class="mi">0</span> 
+        <span class="k">for</span> <span class="n">dsb</span> <span class="ow">in</span> <span class="n">newly_desorbed</span><span class="p">:</span>
+            <span class="n">times</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">prev_ads_record_at_surf_atm</span><span class="o">.</span><span class="n">pop</span><span class="p">(</span><span class="n">dsb</span><span class="p">))</span> <span class="c1">#Assumes this to be ending point +-dt error</span>
+            <span class="n">c_ds</span> <span class="o">=</span> <span class="n">c_ds</span><span class="o">+</span><span class="mi">1</span>
+        <span class="k">return</span> <span class="n">c_ds</span> 
+
+<div class="viewcode-block" id="ClayAnalysis.get_num_adsorbed_at_current_time"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.ClayAnalysis.get_num_adsorbed_at_current_time">[docs]</a>    <span class="k">def</span> <span class="nf">get_num_adsorbed_at_current_time</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">adsorbed_dict</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            Return total number of ions adsorbed to surface in a time step</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">count</span>  <span class="o">=</span> <span class="mi">0</span>
+        <span class="k">for</span> <span class="n">surf_atm</span> <span class="ow">in</span> <span class="n">adsorbed_dict</span><span class="o">.</span><span class="n">keys</span><span class="p">():</span>
+            <span class="k">for</span> <span class="n">ads</span> <span class="ow">in</span> <span class="n">adsorbed_dict</span><span class="p">[</span><span class="n">surf_atm</span><span class="p">]:</span>
+                <span class="n">count</span> <span class="o">=</span> <span class="n">count</span><span class="o">+</span><span class="mi">1</span>      
+        <span class="k">return</span> <span class="n">count</span>  </div>
+
+<span class="c1">#####################################CHARGE THROUGH A SURFACE</span>
+
+<div class="viewcode-block" id="ClayAnalysis.plot_surface_charge"><a class="viewcode-back" href="../../ClayAnalysis.html#ClayAnalysis.clayAnalysis.ClayAnalysis.plot_surface_charge">[docs]</a>    <span class="k">def</span> <span class="nf">plot_surface_charge</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span><span class="n">selection</span><span class="p">,</span><span class="n">bins</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span><span class="n">interpolate</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+        <span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">            params: Atomgroup of interest </span>
+<span class="sd">            params: (optional) bin sizes</span>
+<span class="sd">            params: (optional) bool smoothed </span>
+<span class="sd">            </span>
+<span class="sd">            Simple charge surface plotting via a 2d histogram</span>
+<span class="sd">            NOTE: Not useful should just use VMD instead</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+
+        <span class="n">Xs</span> <span class="o">=</span> <span class="n">selection</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">0</span><span class="p">]</span>
+        <span class="n">Ys</span> <span class="o">=</span> <span class="n">selection</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">Zs</span> <span class="o">=</span> <span class="n">selection</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">positions</span><span class="p">[:,</span><span class="mi">2</span><span class="p">]</span>
+        <span class="n">fig</span><span class="p">,</span> <span class="n">ax</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">subplots</span><span class="p">()</span>
+
+        <span class="n">im</span> <span class="o">=</span> <span class="n">plt</span><span class="o">.</span><span class="n">hist2d</span><span class="p">(</span><span class="n">Xs</span><span class="p">,</span><span class="n">Ys</span><span class="p">,</span><span class="n">weights</span><span class="o">=</span><span class="n">selection</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">charges</span><span class="p">,</span><span class="n">bins</span><span class="o">=</span><span class="mi">200</span><span class="p">)</span>
+        <span class="k">if</span><span class="p">(</span><span class="n">interpolate</span><span class="p">):</span>
+            <span class="n">ax</span><span class="o">.</span><span class="n">imshow</span><span class="p">(</span><span class="n">im</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span> <span class="n">interpolation</span> <span class="o">=</span> <span class="s2">&quot;gaussian&quot;</span><span class="p">,</span><span class="n">extent</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="mi">0</span><span class="p">],</span><span class="mi">0</span><span class="p">,</span><span class="bp">self</span><span class="o">.</span><span class="n">universe</span><span class="o">.</span><span class="n">dimensions</span><span class="p">[</span><span class="mi">1</span><span class="p">]])</span>
+
+        <span class="n">fig</span><span class="o">.</span><span class="n">colorbar</span><span class="p">(</span><span class="n">im</span><span class="p">[</span><span class="mi">3</span><span class="p">])</span>
+
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span></div></div>
+
+
+
+
+<span class="k">if</span> <span class="vm">__name__</span> <span class="o">==</span> <span class="s2">&quot;__main__&quot;</span><span class="p">:</span>
+    <span class="k">if</span> <span class="nb">len</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">)</span> <span class="o">==</span> <span class="mi">0</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;usage:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;topology file, trajectory file, mode, mode specific options&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Modes:&quot;</span><span class="p">)</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;0 : Plot densities, mode specific options: selection strings e.g. &#39;resname NON*,resname Cs&#39;&quot;</span><span class="p">)</span>
+    <span class="n">topfile</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span> 
+    <span class="n">trajfile</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">2</span><span class="p">]</span>
+    <span class="n">mode</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">3</span><span class="p">]</span>
+    <span class="k">if</span><span class="p">(</span><span class="n">topfile</span><span class="p">[</span><span class="o">-</span><span class="mi">3</span><span class="p">:]</span> <span class="o">==</span><span class="s2">&quot;top&quot;</span><span class="p">):</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">mda</span><span class="o">.</span><span class="n">Universe</span><span class="p">(</span><span class="n">topfile</span><span class="p">,</span><span class="n">trajfile</span><span class="p">,</span><span class="n">topology_format</span><span class="o">=</span><span class="s1">&#39;ITP&#39;</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">u</span> <span class="o">=</span> <span class="n">mda</span><span class="o">.</span><span class="n">Universe</span><span class="p">(</span><span class="n">topfile</span><span class="p">,</span><span class="n">trajfile</span><span class="p">)</span>
+    <span class="c1">#u = mda.Universe(&quot;TestFiles/test_sys.pdb&quot;,&quot;TestFiles/test_sys.pdb&quot;)</span>
+    <span class="n">cal</span> <span class="o">=</span> <span class="n">ClayAnalysis</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+    
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;0&quot;</span> <span class="p">:</span>
+        <span class="c1">#Density analysis</span>
+        <span class="n">sel_strs</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">:]</span>
+        <span class="k">for</span> <span class="n">sel_str</span> <span class="ow">in</span> <span class="n">sel_strs</span><span class="p">:</span>
+            <span class="n">selection</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="n">sel_str</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">resnames</span><span class="p">))</span>
+            <span class="nb">print</span><span class="p">(</span><span class="n">selection</span><span class="o">.</span><span class="n">n_atoms</span><span class="p">)</span>
+            <span class="n">cal</span><span class="o">.</span><span class="n">plot_density_w_time</span><span class="p">(</span><span class="n">selection</span><span class="p">,</span><span class="n">label</span><span class="o">=</span><span class="n">sel_str</span><span class="p">)</span>
+        <span class="n">plt</span><span class="o">.</span><span class="n">legend</span><span class="p">()</span>
+        
+        <span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+
+    <span class="k">if</span> <span class="n">mode</span> <span class="o">==</span> <span class="s2">&quot;2&quot;</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Adsorption times analysis&quot;</span><span class="p">)</span>
+        <span class="c1">#cal.move_clay_to_origin()</span>
+        <span class="n">r_c_lower</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">4</span><span class="p">])</span>
+        <span class="n">r_c_upper</span> <span class="o">=</span> <span class="nb">float</span><span class="p">(</span><span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">5</span><span class="p">])</span>
+        <span class="n">ads_sel_str</span> <span class="o">=</span> <span class="n">sys</span><span class="o">.</span><span class="n">argv</span><span class="p">[</span><span class="mi">6</span><span class="p">]</span>
+        <span class="n">ads</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="n">ads_sel_str</span><span class="p">)</span>
+        <span class="n">lower_layers</span><span class="p">,</span><span class="n">upper_layers</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">generate_surface_group</span><span class="p">(</span><span class="s2">&quot;mineral&quot;</span><span class="p">)</span>
+        
+        <span class="n">lower_surf_grp</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">combine_atomgroups</span><span class="p">(</span><span class="n">lower_layers</span><span class="p">)</span>
+        <span class="n">upper_surf_grp</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">combine_atomgroups</span><span class="p">(</span><span class="n">upper_layers</span><span class="p">)</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="s2">&quot;_&quot;</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ads</span><span class="o">.</span><span class="n">resnames</span><span class="p">)))</span><span class="o">+</span><span class="s1">&#39;summarystats.csvb&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">csvfile</span><span class="p">:</span>
+                <span class="n">statWriter</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">writer</span><span class="p">(</span><span class="n">csvfile</span><span class="p">,</span> <span class="n">delimiter</span><span class="o">=</span><span class="s1">&#39;,&#39;</span><span class="p">)</span>
+                <span class="k">for</span> <span class="n">resname</span> <span class="ow">in</span> <span class="n">np</span><span class="o">.</span><span class="n">unique</span><span class="p">(</span><span class="n">ads</span><span class="o">.</span><span class="n">resnames</span><span class="p">):</span> 
+                        <span class="n">times</span><span class="p">,</span> <span class="n">stats</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">find_adsorption_times</span><span class="p">(</span><span class="n">lower_surf_grp</span><span class="p">,</span><span class="n">upper_surf_grp</span><span class="p">,</span><span class="n">resname</span><span class="p">,</span><span class="n">r_c_upper</span><span class="p">,</span><span class="n">r_c_lower</span><span class="p">)</span>
+                        <span class="n">statWriter</span><span class="o">.</span><span class="n">writerow</span><span class="p">((</span><span class="n">resname</span><span class="p">,</span><span class="n">np</span><span class="o">.</span><span class="n">mean</span><span class="p">(</span><span class="n">times</span><span class="p">),</span><span class="n">np</span><span class="o">.</span><span class="n">std</span><span class="p">(</span><span class="n">times</span><span class="p">)</span><span class="o">/</span><span class="n">np</span><span class="o">.</span><span class="n">sqrt</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">times</span><span class="p">))))</span>  
+                        <span class="n">hist</span><span class="p">(</span><span class="n">times</span><span class="p">,</span><span class="n">x_title</span><span class="o">=</span><span class="s2">&quot;Adsorption time</span><span class="se">\n</span><span class="s2">(number of steps)&quot;</span><span class="p">,</span><span class="n">y_title</span><span class="o">=</span><span class="s2">&quot;frequency&quot;</span><span class="p">,</span><span class="n">title</span><span class="o">=</span><span class="n">resname</span><span class="p">)</span>
+
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="../../index.html">ClayAnalysis</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="../../index.html">Documentation overview</a><ul>
+  <li><a href="../index.html">Module code</a><ul>
+  </ul></li>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Benjamin Carpenter.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+    </div>
+
+    
+
+    
+  </body>
+</html>

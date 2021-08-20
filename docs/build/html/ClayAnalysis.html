@@ -1,0 +1,491 @@
+
+<!DOCTYPE html>
+
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>ClayAnalysis package &#8212; ClayAnalysis  documentation</title>
+    <link rel="stylesheet" type="text/css" href="_static/pygments.css" />
+    <link rel="stylesheet" type="text/css" href="_static/alabaster.css" />
+    <script data-url_root="./" id="documentation_options" src="_static/documentation_options.js"></script>
+    <script src="_static/jquery.js"></script>
+    <script src="_static/underscore.js"></script>
+    <script src="_static/doctools.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+   
+  <link rel="stylesheet" href="_static/custom.css" type="text/css" />
+  
+  <meta name="viewport" content="width=device-width, initial-scale=0.9, maximum-scale=0.9" />
+
+  </head><body>
+  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="clayanalysis-package">
+<h1>ClayAnalysis package<a class="headerlink" href="#clayanalysis-package" title="Permalink to this headline">¶</a></h1>
+<div class="section" id="subpackages">
+<h2>Subpackages<a class="headerlink" href="#subpackages" title="Permalink to this headline">¶</a></h2>
+<div class="toctree-wrapper compound">
+<ul>
+<li class="toctree-l1"><a class="reference internal" href="ClayAnalysis.Clay-Project.html">ClayAnalysis.Clay-Project package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ClayAnalysis.Clay-Project.html#subpackages">Subpackages</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="ClayAnalysis.Clay-Project.analysis.html">ClayAnalysis.Clay-Project.analysis package</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="ClayAnalysis.Clay-Project.analysis.html#submodules">Submodules</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ClayAnalysis.Clay-Project.analysis.html#clayanalysis-clay-project-analysis-definitions-module">ClayAnalysis.Clay-Project.analysis.definitions module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ClayAnalysis.Clay-Project.analysis.html#clayanalysis-clay-project-analysis-density-profiles-module">ClayAnalysis.Clay-Project.analysis.density_profiles module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ClayAnalysis.Clay-Project.analysis.html#clayanalysis-clay-project-analysis-rdf-atoms-ions-module">ClayAnalysis.Clay-Project.analysis.rdf_atoms_ions module</a></li>
+<li class="toctree-l4"><a class="reference internal" href="ClayAnalysis.Clay-Project.analysis.html#module-contents">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li class="toctree-l2"><a class="reference internal" href="ClayAnalysis.Clay-Project.html#module-contents">Module contents</a></li>
+</ul>
+</li>
+<li class="toctree-l1"><a class="reference internal" href="ClayAnalysis.ClayProject.html">ClayAnalysis.ClayProject package</a><ul>
+<li class="toctree-l2"><a class="reference internal" href="ClayAnalysis.ClayProject.html#module-contents">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+</div>
+<div class="section" id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-ClayAnalysis.clayAnalysis">
+<span id="clayanalysis-clayanalysis-module"></span><h2>ClayAnalysis.clayAnalysis module<a class="headerlink" href="#module-ClayAnalysis.clayAnalysis" title="Permalink to this headline">¶</a></h2>
+<dl>
+<dt>TODO:</dt><dd><p><a href="#id1"><span class="problematic" id="id2">*</span></a>change print statments to logging
+<a href="#id3"><span class="problematic" id="id4">*</span></a>allow specification of clay residues at instantiation?
+<a href="#id5"><span class="problematic" id="id6">*</span></a>Get rid of box_dims for timestep.dimensions
+<a href="#id7"><span class="problematic" id="id8">*</span></a>make transformation of clay to origin automatic
+<a href="#id9"><span class="problematic" id="id10">*</span></a>get_partial_density function currently only returns a single partial density (last frame) need</p>
+<blockquote>
+<div><p>to change it’s return to res and then update rest of code to deal with this change</p>
+</div></blockquote>
+</dd>
+</dl>
+<dl class="py class">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.ClayAnalysis">
+<em class="property"><span class="pre">class</span> </em><span class="sig-prename descclassname"><span class="pre">ClayAnalysis.clayAnalysis.</span></span><span class="sig-name descname"><span class="pre">ClayAnalysis</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">u</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#ClayAnalysis"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.ClayAnalysis" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.ClayAnalysis.combine_atomgroups">
+<span class="sig-name descname"><span class="pre">combine_atomgroups</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">list_of_groups</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#ClayAnalysis.combine_atomgroups"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.ClayAnalysis.combine_atomgroups" title="Permalink to this definition">¶</a></dt>
+<dd><p>Converts a list of atomgroups into a single atomgroup</p>
+<dl>
+<dt>Args:</dt><dd><p>list_of_groups:      Python list made up of atomgroup objects</p>
+</dd>
+<dt>Returns:</dt><dd><p>Single atomgroup containing all atoms in passed list</p>
+</dd>
+<dt>Examples:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">a</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;name AtomA&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">b</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;name AtomB&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">cal</span> <span class="o">=</span> <span class="n">ClayAnalysis</span><span class="o">.</span><span class="n">clayAnalysis</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">combined_group</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">combine_atomgroups</span><span class="p">([</span><span class="n">a</span><span class="p">,</span><span class="n">b</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">combined_group</span><span class="o">.</span><span class="n">names</span>
+<span class="go">[&quot;AtomA&quot;,&quot;AtomB&quot;]</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.ClayAnalysis.find_adsorbed">
+<span class="sig-name descname"><span class="pre">find_adsorbed</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surface_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adsorbants_resnames</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_c_upper</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_c_lower</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#ClayAnalysis.find_adsorbed"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.ClayAnalysis.find_adsorbed" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return a dictionary of surface ions and the things adsorbed to them at the current step</p>
+<p>By looping over every surface atoms, generates a dictionary of surface atoms (atomgroup
+with single surface atoms within) with something adsorbed to them to each cation that is
+adsorbed using the radial disance between the surface atom and cation as a cutoff of
+adsorbed versus non adsorbed</p>
+<dl>
+<dt>Args:</dt><dd><p>surface_ids: index of atoms at the surface of clay
+adsorbants_resnames: resnames of possible adsorbants to the surface of clay that are</p>
+<blockquote>
+<div><p>of interest</p>
+</div></blockquote>
+<p>r_c_upper: Cutoff distance at which a particle is considered to be adsorbed
+r_c_lower: Distance along z above which a particle is considered to be adsorbed</p>
+</dd>
+<dt>Returns:</dt><dd><p>Dictionary of atomGroups of adsorbed ions (of type given in adsorbant) to given
+surface atoms
+i.e. {Surface_atom (Atomgroup containing 1 atom): [Adsorbed_cations (Atomgroup)]}</p>
+</dd>
+<dt>Raises:</dt><dd><p>ZeroDivisionError, AssertionError, &amp; ValueError.</p>
+</dd>
+</dl>
+<p>Examples:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.ClayAnalysis.find_adsorption_times">
+<span class="sig-name descname"><span class="pre">find_adsorption_times</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">lower_surf_grp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">upper_surf_grp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adsorbant_resname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_c_upper</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_c_lower</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#ClayAnalysis.find_adsorption_times"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.ClayAnalysis.find_adsorption_times" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines the times overwhich an ions are adsorbed to a surface by looking at z position</p>
+<p>Simply uses z position of ions relative to the surface of the clay as a definition for
+adsorption. i.e. if an ion has position along the z-axis a distance between r_c_lower
+and r_c_upper to the average position of surface clay atoms</p>
+<p>##REPLACE BELOW WITH AN IMAGE
+upper surface
+————-
+r_c_lower
+————-
+adsorbed ions
+————-
+r_c_upper
+————-
+Bulk Solution
+————-
+r_c_upper
+————-
+adsorbed ions
+————-
+r_c_lower
+————-
+lower surface</p>
+<dl>
+<dt>NOTE: If an ion is ‘already adsorbed’ at the start of the simulation it will be</dt><dd><p>considered as though it adsorbs at starting time step. As such ions should start
+off far from the clay surface (achiveable via the reinsert_ions.py script in
+<a class="reference external" href="https://github.com/Benjamin5555/Clay-Project">https://github.com/Benjamin5555/Clay-Project</a>)</p>
+</dd>
+<dt>NOTE: If an ion is still adsorbed at the end of the simulation its time will not be</dt><dd><p>output</p>
+</dd>
+<dt>Args:</dt><dd><p>lower_surf_grp: ‘bottom’ clay surface atomgroup
+upper_surf_grp: ‘top’ clay surface atomgroup
+adsorbants_resnames: resnames of possible adsorbants to the surface of clay that are</p>
+<blockquote>
+<div><p>of interest</p>
+</div></blockquote>
+<p>r_c_upper: Cutoff distance at which a particle is considered to be adsorbed
+r_c_lower: Distance along z above which a particle is considered to be adsorbed
+start:     (Optional) starting timstep to analyse, default 0
+stop:      (Optional) Final timestep to analyse, default -1 (final step)</p>
+</dd>
+<dt>Returns:</dt><dd><p>Statistics on adsorption and a list of adsorption times collected over the
+trajectory for atoms that are within the distance boundary</p>
+<p>Statistics have form Step,Number of  adsorption events, num desorption events,
+number continuing to be adsorbed, number adsorbed total at ts, total_adsorption
+events over whole trajectory</p>
+</dd>
+<dt>Raises:</dt><dd><p>ZeroDivisionError, AssertionError, &amp; ValueError.</p>
+</dd>
+<dt>Examples:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cal</span> <span class="o">=</span> <span class="n">clayAnalysis</span><span class="o">.</span><span class="n">ClayAnalysis</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">surfaces</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">generate_surface_group</span><span class="p">(</span><span class="s2">&quot;mineral&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lower_surf_grp</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">combine_atomgroups</span><span class="p">(</span><span class="n">surfaces</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">upper_surf_grp</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">combine_atomgroups</span><span class="p">(</span><span class="n">surfaces</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">times</span><span class="p">,</span><span class="n">stats</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">find_adsorbant_times</span><span class="p">(</span><span class="n">lower_surf_grp</span><span class="p">,</span><span class="n">upper_surf_grp</span><span class="p">,</span><span class="s2">&quot;Cs&quot;</span><span class="p">,</span><span class="mf">4.8</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.ClayAnalysis.find_adsorption_times_c">
+<span class="sig-name descname"><span class="pre">find_adsorption_times_c</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surface_ids</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">adsorbant_resname</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_c_upper</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">r_c_lower</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#ClayAnalysis.find_adsorption_times_c"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.ClayAnalysis.find_adsorption_times_c" title="Permalink to this definition">¶</a></dt>
+<dd><p>Determines the times overwhich ions are adsorbed to a surface by looking at radial
+distance of all surface atoms</p>
+<p>Uses a similar process to find_adsorpion_times in terms of looking at changes in groups
+but is able to keep track of specific surface atom to specific ion relationships and so
+could be built upon to gain furher info on specific adsorption events, should it ever be
+needed</p>
+<dl>
+<dt>NOTE: If an ion is ‘already adsorbed’ at the start of the simulation it will be</dt><dd><p>considered as though it adsorbs at starting time step. As such ions should start
+off far from the clay surface (achiveable via the reinsert_ions.py script in
+<a class="reference external" href="https://github.com/Benjamin5555/Clay-Project">https://github.com/Benjamin5555/Clay-Project</a>)</p>
+</dd>
+<dt>NOTE: If an ion is still adsorbed at the end of the simulation its time will not be</dt><dd><p>output</p>
+</dd>
+<dt>Args:</dt><dd><dl class="simple">
+<dt>surface_ids: atomgroup.indices property of the surface group of interest to look at</dt><dd><p>adsorbance to</p>
+</dd>
+</dl>
+<p>lower_surf_grp: ‘bottom’ clay surface atomgroup
+upper_surf_grp: ‘top’ clay surface atomgroup
+adsorbants_resnames: resnames of possible adsorbants to the surface of clay that are</p>
+<blockquote>
+<div><p>of interest</p>
+</div></blockquote>
+<p>r_c_upper: Cutoff distance at which a particle is considered to be adsorbed
+r_c_lower: Distance along z above which a particle is considered to be adsorbed
+start:     (Optional) starting timstep to analyse, default 0
+stop:      (Optional) Final timestep to analyse, default -1 (final step)</p>
+</dd>
+<dt>Returns:</dt><dd><p>Statistics on adsorption and a list of adsorption times collected over the
+trajectory for atoms that are within the distance boundary</p>
+<p>Statistics have form Step,Number of  adsorption events, num desorption events,
+number continuing to be adsorbed, number adsorbed total at ts, total_adsorption
+events over whole trajectory</p>
+</dd>
+<dt>Raises:</dt><dd><p>ZeroDivisionError, AssertionError, &amp; ValueError.</p>
+</dd>
+<dt>Examples:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cal</span> <span class="o">=</span> <span class="n">clayAnalysis</span><span class="o">.</span><span class="n">ClayAnalysis</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">surfaces</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">generate_surface_group</span><span class="p">(</span><span class="s2">&quot;mineral&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">lower_surf_grp</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">combine_atomgroups</span><span class="p">(</span><span class="n">surfaces</span><span class="p">[</span><span class="mi">0</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">upper_surf_grp</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">combine_atomgroups</span><span class="p">(</span><span class="n">surfaces</span><span class="p">[</span><span class="mi">1</span><span class="p">])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">times</span><span class="p">,</span><span class="n">stats</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">find_adsorbant_times</span><span class="p">(</span><span class="n">lower_surf_grp</span><span class="p">,</span><span class="n">upper_surf_grp</span><span class="p">,</span><span class="s2">&quot;Cs&quot;</span><span class="p">,</span><span class="mf">4.8</span><span class="p">,</span><span class="mi">0</span><span class="p">)</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.ClayAnalysis.generate_surface_group">
+<span class="sig-name descname"><span class="pre">generate_surface_group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">surf_type</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'waters'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">box_dims</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#ClayAnalysis.generate_surface_group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.ClayAnalysis.generate_surface_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a list of two atomgroups, which represent the ‘top’ and ‘bottom’ basal surfaces</p>
+<p>Returns two atomgroups, the lower and upper surface respecively.
+NOTE:Makes use of assumption of 3 layered clay and uses the mass density along z to work
+out which atoms are at surface. As such if the density profile is significantly
+different in terms of number of peaks, this code will identify the incorrect groups as
+surface atoms</p>
+<dl>
+<dt>Args:</dt><dd><dl class="simple">
+<dt>surf_type: (optional) clay components of interest options include waters or mineral,</dt><dd><p>default waters (split due to differing mass density profile)</p>
+</dd>
+</dl>
+<p>box_dims: (optional) box dimension over time, default uses existing</p>
+</dd>
+<dt>Returns:</dt><dd><p>List of 2 atomgroups of clay components that are at a basal surface, first element
+being the lower surface, the second the upper surface</p>
+</dd>
+<dt>Raises:</dt><dd><p>ZeroDivisionError, AssertionError, &amp; ValueError.</p>
+</dd>
+</dl>
+<p>Examples:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.ClayAnalysis.get_box_dim">
+<span class="sig-name descname"><span class="pre">get_box_dim</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">timestep</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#ClayAnalysis.get_box_dim"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.ClayAnalysis.get_box_dim" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a list of simulation box dimensions with time</p>
+<p>Required for use with the partial density function that was taken from DynDen
+(<a class="reference external" href="https://github.com/punkpony/DynDen.git">https://github.com/punkpony/DynDen.git</a>)</p>
+<dl>
+<dt>Args:</dt><dd><p>timestep:  (Optional) Timestep size, default 10
+start:     (Optional) starting timstep to analyse, default 0
+stop:      (Optional) Final timestep to analyse, default -1 (final step)</p>
+</dd>
+<dt>Returns:</dt><dd><p>Simulation box dimensions over time</p>
+</dd>
+<dt>Raises:</dt><dd><p>ZeroDivisionError, AssertionError, &amp; ValueError.</p>
+</dd>
+<dt>Examples:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">cal</span> <span class="o">=</span> <span class="n">ClayAnalysis</span><span class="o">.</span><span class="n">clayAnalysis</span><span class="p">(</span><span class="n">u</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">box_dims_w_time</span> <span class="o">=</span> <span class="n">cal</span><span class="o">.</span><span class="n">get_box_dim</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.ClayAnalysis.get_num_adsorbed_at_current_time">
+<span class="sig-name descname"><span class="pre">get_num_adsorbed_at_current_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">adsorbed_dict</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#ClayAnalysis.get_num_adsorbed_at_current_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.ClayAnalysis.get_num_adsorbed_at_current_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Return total number of ions adsorbed to surface in a time step</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.ClayAnalysis.get_partial_density">
+<span class="sig-name descname"><span class="pre">get_partial_density</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">box_dims</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">sel</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">start</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">stop</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">-</span> <span class="pre">1</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">density</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#ClayAnalysis.get_partial_density"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.ClayAnalysis.get_partial_density" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a list of simulation box dimensions with time</p>
+<p>Required for use with the partial density function that was taken from DynDen
+(<a class="reference external" href="https://github.com/punkpony/DynDen.git">https://github.com/punkpony/DynDen.git</a>)</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>box_dims: Simulation box dimensions for each time step
+sel:      Selection string for atoms using MDAnalysis selection string
+bins:     (Optional) Number of bins to use, default 100
+start:    (Optional) starting timstep to analyse, default 0
+stop:     (Optional) Final timestep to analyse, default -1 (final step)</p>
+</dd>
+<dt>Returns:</dt><dd><p>Density profile along z-axis (assumed normal to clay) for each timepoint
+in the form of a list of tuples of (histogramValues,binsizes) for each timestep</p>
+</dd>
+<dt>Raises:</dt><dd><p>ZeroDivisionError, AssertionError, &amp; ValueError.</p>
+</dd>
+</dl>
+<p>Examples:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.ClayAnalysis.move_clay_to_origin">
+<span class="sig-name descname"><span class="pre">move_clay_to_origin</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#ClayAnalysis.move_clay_to_origin"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.ClayAnalysis.move_clay_to_origin" title="Permalink to this definition">¶</a></dt>
+<dd><p>Shift entire clay such that its center of mass is at 0 along the z-axis</p>
+<p>Is called upon setup of a clay analysis object and so is not really needed to be called
+directly</p>
+<p>Examples:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.ClayAnalysis.plot_density_w_time">
+<span class="sig-name descname"><span class="pre">plot_density_w_time</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">selection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">''</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#ClayAnalysis.plot_density_w_time"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.ClayAnalysis.plot_density_w_time" title="Permalink to this definition">¶</a></dt>
+<dd><p>Creates a matplotlib object of the density profile averaged over time for a selection</p>
+<p>Given an atomgroup object, plots the time averaged mass density of these atoms along the
+z-axis</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>sel:      Atomgroup selection of atoms to plot the time averaged mass density of
+label:    Label for the key of the plot object for this selection</p>
+</dd>
+</dl>
+<p>Examples:</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.ClayAnalysis.plot_surface_charge">
+<span class="sig-name descname"><span class="pre">plot_surface_charge</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">selection</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">100</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">interpolate</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#ClayAnalysis.plot_surface_charge"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.ClayAnalysis.plot_surface_charge" title="Permalink to this definition">¶</a></dt>
+<dd><p>params: Atomgroup of interest
+params: (optional) bin sizes
+params: (optional) bool smoothed</p>
+<p>Simple charge surface plotting via a 2d histogram
+NOTE: Not useful should just use VMD instead</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.get_minima_coords">
+<span class="sig-prename descclassname"><span class="pre">ClayAnalysis.clayAnalysis.</span></span><span class="sig-name descname"><span class="pre">get_minima_coords</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">xs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ys</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#get_minima_coords"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.get_minima_coords" title="Permalink to this definition">¶</a></dt>
+<dd><p>Finds local minima of ys data and returns xs coordinates of these</p>
+<p>Simple minima finder based on minimums or starts of zeroed data</p>
+<dl>
+<dt>Args:</dt><dd><p>xs:   X coordinates
+ys:   related Y coords to find minimums of</p>
+</dd>
+<dt>Returns:</dt><dd><p>List of positions in xs that relate to minimums in ys</p>
+</dd>
+<dt>Raises:</dt><dd><p>ZeroDivisionError, AssertionError, &amp; ValueError.</p>
+</dd>
+<dt>Examples:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">xs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">2</span><span class="p">,</span><span class="mi">3</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">6</span><span class="p">,</span><span class="mi">7</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">ys</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">0</span><span class="p">,</span><span class="mi">5</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">1</span><span class="p">,</span><span class="mi">4</span><span class="p">,</span><span class="mi">5</span><span class="p">]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">get_minima_coords</span><span class="p">(</span><span class="n">xs</span><span class="p">,</span><span class="n">ys</span><span class="p">)</span>
+<span class="go">[2,5]</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.hist">
+<span class="sig-prename descclassname"><span class="pre">ClayAnalysis.clayAnalysis.</span></span><span class="sig-name descname"><span class="pre">hist</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">x_data</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">bins</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">x_title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">y_labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">title</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#hist"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.hist" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot a histogram of some passed data</p>
+<p>Wrapper fo matplotlib histogram plotting</p>
+<dl class="simple">
+<dt>Args:</dt><dd><p>x_data: Data to be histogramed
+bins:   (Optional) number of bins to use
+x_title:(Optional) Label for x_axis of plot
+y_title:(Optional) Label for y_axis of plot
+title:  (Optional) Plot title</p>
+</dd>
+<dt>Returns:</dt><dd><p>Histogram values and bins</p>
+</dd>
+<dt>Raises:</dt><dd><p>ZeroDivisionError, AssertionError, &amp; ValueError.</p>
+</dd>
+</dl>
+<p>Examples:</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="ClayAnalysis.clayAnalysis.plot_group">
+<span class="sig-prename descclassname"><span class="pre">ClayAnalysis.clayAnalysis.</span></span><span class="sig-name descname"><span class="pre">plot_group</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">grp</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">fig</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ax</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">label</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="reference internal" href="_modules/ClayAnalysis/clayAnalysis.html#plot_group"><span class="viewcode-link"><span class="pre">[source]</span></span></a><a class="headerlink" href="#ClayAnalysis.clayAnalysis.plot_group" title="Permalink to this definition">¶</a></dt>
+<dd><p>Plot positions of atoms in a passed group</p>
+<p>Creates simple 3D plot of the positions of atoms in the passed group and returns a figure
+and axes object on which more groups can be plotted</p>
+<dl>
+<dt>Args:</dt><dd><p>grp:    Group to plot positions of
+fig:    (Optional) Figure to add plots to
+ax:     (Optional) Axes to add plots to
+label:  (Optional) Label to add to plot for passed group</p>
+</dd>
+<dt>Returns:</dt><dd><p>Figure and axes containing the plot of atomgroup positions</p>
+</dd>
+<dt>Raises:</dt><dd><p>ZeroDivisionError, AssertionError, &amp; ValueError.</p>
+</dd>
+<dt>Examples:</dt><dd><div class="doctest highlight-default notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">atom_group</span> <span class="o">=</span> <span class="n">u</span><span class="o">.</span><span class="n">atoms</span><span class="o">.</span><span class="n">select_atoms</span><span class="p">(</span><span class="s2">&quot;resname NON*&quot;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plot_group</span><span class="p">(</span><span class="n">atom_group</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">plt</span><span class="o">.</span><span class="n">show</span><span class="p">()</span>
+</pre></div>
+</div>
+</dd>
+</dl>
+</dd></dl>
+
+</div>
+<div class="section" id="module-ClayAnalysis.surface_analysis_example">
+<span id="clayanalysis-surface-analysis-example-module"></span><h2>ClayAnalysis.surface_analysis_example module<a class="headerlink" href="#module-ClayAnalysis.surface_analysis_example" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="clayanalysis-test-surface-adsorption-module">
+<h2>ClayAnalysis.test_surface_adsorption module<a class="headerlink" href="#clayanalysis-test-surface-adsorption-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="clayanalysis-test-surface-analysis-module">
+<h2>ClayAnalysis.test_surface_analysis module<a class="headerlink" href="#clayanalysis-test-surface-analysis-module" title="Permalink to this headline">¶</a></h2>
+</div>
+<div class="section" id="module-ClayAnalysis.view_surface_charge">
+<span id="clayanalysis-view-surface-charge-module"></span><h2>ClayAnalysis.view_surface_charge module<a class="headerlink" href="#module-ClayAnalysis.view_surface_charge" title="Permalink to this headline">¶</a></h2>
+<p>Provides a very basic visulisation of charge on the surface of the clay via a 2D histogram</p>
+<p>Probably a better idea to just use VMD</p>
+</div>
+<div class="section" id="module-ClayAnalysis">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-ClayAnalysis" title="Permalink to this headline">¶</a></h2>
+</div>
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<h1 class="logo"><a href="index.html">ClayAnalysis</a></h1>
+
+
+
+
+
+
+
+
+<h3>Navigation</h3>
+
+<div class="relations">
+<h3>Related Topics</h3>
+<ul>
+  <li><a href="index.html">Documentation overview</a><ul>
+  </ul></li>
+</ul>
+</div>
+<div id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</div>
+<script>$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="footer">
+      &copy;2021, Benjamin Carpenter.
+      
+      |
+      Powered by <a href="http://sphinx-doc.org/">Sphinx 4.1.2</a>
+      &amp; <a href="https://github.com/bitprophet/alabaster">Alabaster 0.7.8</a>
+      
+      |
+      <a href="_sources/ClayAnalysis.rst.txt"
+          rel="nofollow">Page source</a>
+    </div>
+
+    
+
+    
+  </body>
+</html>

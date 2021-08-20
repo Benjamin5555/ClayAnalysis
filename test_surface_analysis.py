@@ -1,3 +1,11 @@
+"""
+    Provides a simple test of the surface analysis functionality working by reanalysing the 
+    surface at each step and checking that the same number of surface atoms are detected at each 
+    time step, as we would expect for a clay that is more or less static as in this system. 
+
+"""
+
+
 import MDAnalysis as mda
 import nglview as nv
 from nglview.datafiles import PDB, XTC
@@ -89,25 +97,28 @@ def plot_surface_vs_bulk(u,upper_surf,lower_surf,ag_upper,ag_lower):
 #u = mda.Universe("TestFiles/sim_01.tpr","TestFiles/sim_01.trr")
 u = mda.Universe("TestFiles/sim_02/sim_02.tpr","TestFiles/sim_02/sim_02.trr")
 
-cal = ClayAnalysis(u)
 
-
-
-for du in u.trajectory:
-    surfaces = cal.generate_surface_group("waters")
-    lower_surf = surfaces[0]
-    upper_surf = surfaces[1]
-    ag_upper,ag_lower = num_test(lower_surf,upper_surf) 
-    #plot_surface_vs_bulk(u,upper_surf,lower_surf,ag_upper,ag_lower)
-    assert cal.combine_atomgroups(lower_surf)==ag_lower
-
-
-    surfaces = cal.generate_surface_group("mineral")
-    lower_surf = surfaces[0]
-    upper_surf = surfaces[1]
-    #
-    ag_upper,ag_lower = num_test(lower_surf,upper_surf)
-    #`plot_surface_vs_bulk(u,upper_surf,lower_surf,ag_upper,ag_lower)
-
+if __name__ == "__main__": 
     
-
+    cal = ClayAnalysis(u)
+    
+    
+    
+    for du in u.trajectory:
+        surfaces = cal.generate_surface_group("waters")
+        lower_surf = surfaces[0]
+        upper_surf = surfaces[1]
+        ag_upper,ag_lower = num_test(lower_surf,upper_surf) 
+        #plot_surface_vs_bulk(u,upper_surf,lower_surf,ag_upper,ag_lower)
+        assert cal.combine_atomgroups(lower_surf)==ag_lower
+    
+    
+        surfaces = cal.generate_surface_group("mineral")
+        lower_surf = surfaces[0]
+        upper_surf = surfaces[1]
+        #
+        ag_upper,ag_lower = num_test(lower_surf,upper_surf)
+        #`plot_surface_vs_bulk(u,upper_surf,lower_surf,ag_upper,ag_lower)
+    
+        
+    
